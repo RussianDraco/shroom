@@ -1739,6 +1739,9 @@ class InventoryIcon:
 
         my_surface = pg.Surface(icon_size)
 
+        white_bck = pg.Rect(3, 3, SLOT_X - 6, SLOT_Y - 6)
+        pg.draw.rect(my_surface, (255, 255, 255), white_bck)
+
         icon_img = pg.image.load(self.icon)
 
         icon_img = pg.transform.scale(icon_img, (SLOT_X - 6, SLOT_Y - 6))
@@ -1762,7 +1765,6 @@ class QuestIcon:
         self.id = id
         self.title = ""
         self.description = ""
-        self.icon = ""
         self.quantity = 0
     
     def update_id(self, id):
@@ -1781,16 +1783,14 @@ class QuestIcon:
 
         my_surface = pg.Surface(icon_size)
 
-        icon_img = pg.image.load(self.icon)
-
-        icon_img = pg.transform.scale(icon_img, (SLOT_X - 6, SLOT_Y - 6))
-
         doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 30)
 
-        quantity_txt = doom_font.render(str(self.quantity), False, (0, 0, 0))
+        title_txt = doom_font.render(self.title, False, (0, 0, 0))
+        desc_txt = doom_font.render(self.description, False, (0, 0, 0))
 
-        my_surface.blit(icon_img, (3, 3))
-        my_surface.blit(quantity_txt, (SLOT_X - 6, SLOT_Y - 6))
+
+
+        my_surface.blit(title_txt, ())
 
         #return a finished icon surface
 
@@ -1851,22 +1851,14 @@ class DisplayMenu:
                 n+=1
 
         pos = 0
-        for icon in self.inventory_icons:
+        for icon in self.quest_icons:
             slot = icon.update()
 
-            x_padding, y_padding = 10, 10
+            x_padding, y_padding = 0, 30
 
-            self.inven_surface.blit(slot, ((pos % SLOT_HOR_LIMIT) * SLOT_X + x_padding * pos + 30, (math.floor(pos / SLOT_HOR_LIMIT)) * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30))
+            self.inven_surface.blit(slot, (int(WIDTH * 0.66), pos * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30))
 
             pos+=1
-            for icon in self.quest_icons:
-                slot = icon.update()
-
-                x_padding, y_padding = 0, 30
-
-                self.inven_surface.blit(slot, (int(WIDTH * 0.66), pos * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30))
-
-                pos+=1
 
     def draw_inventory(self):
         self.item_list = []
