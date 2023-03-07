@@ -1871,7 +1871,33 @@ class DisplayMenu:
 
         if missing_quests > 0:
             for x in range(missing_quests):
-                self.quest_icons.append()
+                self.quest_icons.append(QuestIcon(self.game, len(self.quest_icons)))
+        elif missing_quests < 0:
+            for x in range(abs(missing_quests)):
+                self.quest_icons.pop(-1)
+
+            n = 0
+            for icon in self.quest_icons:
+                icon.update_id(n)
+                n+=1
+
+        pos = 0
+        for icon in self.inventory_icons:
+            slot = icon.update()
+
+            x_padding, y_padding = 10, 10
+
+            self.inven_surface.blit(slot, ((pos % SLOT_HOR_LIMIT) * SLOT_X + x_padding * pos + 30, (math.floor(pos / SLOT_HOR_LIMIT)) * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30))
+
+            pos+=1
+            for icon in self.quest_icons:
+                slot = icon.update()
+
+                x_padding, y_padding = 0, 30
+
+                self.inven_surface.blit(slot, (int(WIDTH * 0.66), pos * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30))
+
+                pos+=1
 
     def draw_inventory(self):
         self.item_list = []
