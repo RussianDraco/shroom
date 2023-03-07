@@ -132,8 +132,6 @@ class Player:
         self.ammo = 3
         self.showWeapon = True
         self.time_prev = pg.time.get_ticks()
-        #if in range to talk to johny
-        self.johny_range = False
         self.canMove = True
 
         self.gas = False
@@ -1049,35 +1047,6 @@ class Pickup(SpriteObject):
         if removed:
             self.game.object_handler.disable_pickup(self)
             del self
-
-#class for johny
-class Johny(SpriteObject):
-    def __init__(self, game, path='resources/sprites/static/johny.png', pos=(10.5, 3.5), scale=1, shift=0.27):
-        super().__init__(game, path, pos, scale, shift)
-        self.pitch = "deep"
-        self.talkrange = 2.5
-        self.pos = pos
-
-    def event_call(self, event):
-        if self.game.player.johny_range:
-            if event.key == pg.K_e and not self.game.text_box.showing and self.game.text_box.time_limit_done():
-                self.game.text_box.display_text("Hello Shrek, welcome to hell, I am Johny, you should probably beware of the demons patrolling around here, use your onions as a defense, there is a bag right there", self.pitch, call_source=self)
-
-    def update_sub(self):
-        mx, my = self.pos
-        px, py = self.game.player.map_pos
-
-        #if within range, allow talk
-        if distance_formula(mx, my, px, py) <= self.talkrange:
-            self.game.player.johny_range = True
-            if not self.game.text_box.showing:
-                needTalk_font = pg.font.Font('resources/textutil/textboxfont.ttf', 30)
-
-                needTalk = needTalk_font.render("E to talk to Johny", False, (255, 255, 255))
-
-                self.game.screen.blit(needTalk, (self.screen_x - 200, HEIGHT))
-        else:
-            self.game.player.johny_range = False
             
 class BasicPassiveNPC(SpriteObject): #NEED TO MAKE A METHOD TO ONLY ALLOW PLAYER TO SPEAK TO ONE NPC AT A TIME AND NOT HAVE MULTIPLE MESSAGES FOR PRESS SPACE TO TALK APPEAR
     def __init__(self, game, path='resources/sprites/passive/ghost.png', pos=(10.5, 3.5), usetextbox=True, myline="hello", name="character", pitch="high", scale=0.75, shift=0, special_tag = None): #pitch: high/mid/deep
@@ -1236,8 +1205,6 @@ class ObjectHandler:
         #add_sprite(SpriteObject(game, path="resources/sprites/static/cursedtree.png", pos=(9.5, 10.0), scale=1.2, shift=-0.12))
 
         #Create special characters
-        self.johny = Johny(game, pos=(1.5, 4.5))
-        add_sprite(self.johny)
 
         #Create npcs
         add_npc(NPC(game, pos=(1.5, 3.5)))
@@ -1246,6 +1213,8 @@ class ObjectHandler:
         #add_npc(NPC(game, pos=(9.5,5.5)))
 
         #create passives
+        add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/johny.png', pos=(1.5, 3.5), myline="Hello Shrek, welcome to hell, I am Johny, you should probably beware of the demons patrolling around here, use your onions as a defense, there is a bag right there", name="Johny", pitch="deep", scale=1, shift=0.27))
+
         add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/bellygoblin.png' , pos=(14.5, 7.5), myline="Ohhhh, yesterday I ate a- something I wasn't supposed, now I have a terrrrible stomach ache", name="bloated goblin", pitch="high", scale=1.25, shift=0.1, special_tag='bloatedgoblin'))
 
         add_pass(BasicPassiveNPC(game, pos=(13.5, 4.5), myline="Hello, I run politics", name="friendly ghost", shift=0.2))
@@ -2085,7 +2054,6 @@ class Game:
                 else:
                     self.keys[event.key] = True
                 self.text_box.event_call(event)
-                self.object_handler.johny.event_call(event)
                 self.display_menu.event_call(event)
                 [passive.event_call(event) for passive in self.object_handler.passive_list]
             if event.type == pg.KEYUP:
