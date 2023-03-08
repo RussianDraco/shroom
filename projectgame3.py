@@ -886,7 +886,9 @@ class ObjectRenderer:
         self.sky_offset = 0
         #self.blood_screen = 
         #self.gameoverImg = 
-        self.current_portal_frame = 0
+        self.portal_frames = [self.get_texture('resources/textures/portal/0.png'), self.get_texture('resources/textures/portal/1.png'), 
+                              self.get_texture('resources/textures/portal/2.png'), self.get_texture('resources/textures/portal/3.png')]
+        self.portal_frame_n = 0
         
 
     #function to draw background(sky) and to render all game objects
@@ -897,8 +899,8 @@ class ObjectRenderer:
     def next_portal_frame(self):
         px, py = self.game.player.map_pos
         if distance_formula(PORTAL_X, PORTAL_Y, px, py) < 11:
-            self.wall_textures["p"] = self.get_texture('resources/textures/portal/' + str(self.current_portal_frame) + '.png')
-            self.current_portal_frame += 1; self.current_portal_frame %= 4
+            self.portal_frame_n += 1; self.portal_frame_n %= 4
+            self.wall_textures["p"] = self.portal_frames[self.portal_frame_n]
 
     #if you lost, show lose screen
     def game_over(self):
