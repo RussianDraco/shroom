@@ -681,9 +681,17 @@ BASE_DATA = {
                 "shift": 0.3,
                 "special_tag": None
             }
+        ],
+        "sprites": [
+            #['resources/sprites/static/candlebra.png', [2.5, 2.5], 0.25, 1.4]
+        ],
+        "pickups": [
+            [[6.5, 6.5], 'item', 'resources/sprites/items/stomachmedicine.png', 1, 0.25, 1.6, 1],
+            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.25, 1.6, ""]
         ]
     }
 }
+
 
 cur_map = None
 
@@ -1217,10 +1225,11 @@ class SuperStaticSprite(SpriteObject):
 """
 
 class Pickup(SpriteObject):
-    #type would be item/money/armor/ammo/special(for quests)/etc, subtype would really be for special type, number is for the number of the thing you pickup, subtype will be the item if the type is item
+    #type would be item/money/armor/ammo/special(for quests)/etc, subtype would really be for special type, number is for the number of the thing you pickup, subtype will be the id of item if the type is item
     def __init__(self, game, pos, type, path=None, number=1, scale=0.25, shift=1.6, subtype = ""):
         if path == None and type == 'item':
-            path = subtype.icon
+            #its purposefully game and not self.game because super is called after and game is the same and this needs to be before super init
+            path = game.inventory_system.get_item_by_id(subtype).icon
         super().__init__(game, path, pos, scale, shift)
         self.type = type
         self.subtype = subtype
@@ -1250,7 +1259,7 @@ class Pickup(SpriteObject):
                 removed = True
 
             elif self.type == "item":
-                self.game.inventory_system.add_item(self.subtype, 1 )
+                self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(self.subtype), 1 )
                 removed = True
 
             elif self.type == "special":
@@ -1335,25 +1344,6 @@ class BasicPassiveNPC(SpriteObject): #NEED TO MAKE A METHOD TO ONLY ALLOW PLAYER
         del self
 
 
-#sub class for a static sprite for ammo recharge
-class OnionBag(SpriteObject):
-    def __init__(self, game, path='resources/sprites/static/onionbag.png', pos=(2.0, 2.0), scale=0.5, shift=0.7):
-        super().__init__(game, path, pos, scale, shift)
-        self.pos = pos
-        self.onion_number = 5
-        self.range = 1.5
-
-    def update_sub(self):
-        mx, my = self.pos
-        px, py = self.game.player.map_pos
-
-        if distance_formula(mx, my, px, py) <= self.range:
-            self.game.player.ammo += self.onion_number
-            self.game.player.checkWeaponShow()
-            self.game.object_handler.sprite_list.remove(self)
-            del self
-
-
 #a class piggybacking off the spriteobject that contains animation
 class AnimatedSprite(SpriteObject):
     def __init__(self, game, path='resources/sprites/static/johny.png', pos=(10.5, 3.5), scale=1, shift=0.27, animation_time=120):
@@ -1421,25 +1411,13 @@ class ObjectHandler:
         self.passive_centered = {}
 
         #Create static sprites
-        add_sprite(OnionBag(game, pos=(5.5,5.5)))
 
         #add_sprite(SpriteObject(game, path="resources/sprites/static/cursedtree.png", pos=(9.5, 10.0), scale=1.2, shift=-0.12))
-
-        #Create special characters
-
-        #Create npcs
-        #add_npc(NPC(game, pos=(1.5, 3.5)))
-
-        #create passives
-        #add_pass(BasicPassiveNPC(game, pos=(13.5, 4.5), myline="Hello, I run politics", name="friendly ghost", shift=0.2))
-
-        #add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/donkey.png', pos=(5.5, 9.5), myline="...", name="donkey clone", pitch=None, shift=0.3))
 
         if not self.game.map.need_to_load == None:
             self.load_level_spawns(self.game.map.need_to_load)
 
         #create pickups   self, game, pos, type, path=None, number=1, scale=0.25, shift=0, subtype = ""
-        add_pickup(Pickup(self.game, (5, 5), 'item', subtype=self.game.inventory_system.get_item_by_id(1)))
         
 
     #update all individual sprites and npcs
@@ -1487,6 +1465,18 @@ class ObjectHandler:
             for passive in passar:
                 self.add_passive(BasicPassiveNPC(self.game, passive["path"], (passive["pos"][0], passive["pos"][1]), passive["usetextbox"], passive["myline"], 
                                                  passive["name"], passive["pitch"], passive["scale"], passive["shift"], passive["special_tag"]))
+
+        if "sprites" in spawndict:
+            spritar = spawndict["sprites"]
+
+            for sprit in spritar:
+                self.add_sprite(SpriteObject(self.game, sprit[0], (sprit[1][0], sprit[1][1]), sprit[2], sprit[3]))
+
+        if "pickups" in spawndict:
+            pickar = spawndict["pickups"]
+
+            for pick in pickar:
+                self.add_pickup(Pickup(self.game, (pick[0][0], pick[0][1]), pick[1], pick[2], pick[3], pick[4], pick[5], pick[6]))
 
     #function to add an npc
     def add_npc(self, npc):
