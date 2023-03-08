@@ -119,6 +119,20 @@ ENEMIES = {
             attack_dmg = 8,
             accuracy = 0.15
         )
+    },
+     "zombie": {
+        "path" : 'resources/sprites/npc/zombie/0.png',
+        "scale": 0.6,
+        "shift" : 0.38,
+        "animation_time" : 180,
+        "stats" : Stats(
+            attack_dist = 4,
+            speed = 0.06,
+            size = 1,
+            health = 200,
+            attack_dmg = 15,
+            accuracy = 0.33
+        )
     }
 }
 
@@ -645,7 +659,8 @@ BASE_DATA = {
     "map": base_map,
     "spawns": {
         "npc": [
-            ["basic", [9.5, 2.5]]
+            ["basic", [9.5, 2.5]],
+            ["zombie", [9.5, 4.5]]
         ],
         "passive": [
             {
@@ -1379,6 +1394,7 @@ class AnimatedSprite(SpriteObject):
         images = deque()
         for file_name in os.listdir(path):
             if os.path.isfile(os.path.join(path, file_name)):
+                print(path + "/" + file_name)
                 img = pg.image.load(path + "/" + file_name).convert_alpha()
                 images.append(img)
         return images
