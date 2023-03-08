@@ -122,13 +122,13 @@ ENEMIES = {
     },
      "zombie": {
         "path" : 'resources/sprites/npc/zombie/0.png',
-        "scale": 0.6,
-        "shift" : 0.38,
-        "animation_time" : 180,
+        "scale": 1.75,
+        "shift" : 0.1,
+        "animation_time" : 200,
         "stats" : Stats(
-            attack_dist = 4,
-            speed = 0.06,
-            size = 1,
+            attack_dist = 2,
+            speed = 0.03,
+            size = 1.75,
             health = 200,
             attack_dmg = 15,
             accuracy = 0.33
@@ -165,6 +165,22 @@ class Player:
         self.current_quests = [] #lets just restrict it to three quests for now
 
         self.inventoryOpen = False
+
+        self.onPortal = False
+
+        #self.last_teleport = 0
+        #self.portal_delay = 5000
+
+    def portal_check(self):
+        #if pg.time.get_ticks() - self.last_teleport > self.portal_delay:
+        #    return False
+
+        px, py = self.map_pos
+        if PORTAL_X == px and PORTAL_Y == py:
+            self.game.map.load_level(1)
+            #self.last_teleport = pg.time.get_ticks()
+            return True
+        return False
 
     #check if player has ammo (if he does, show weapon)
     def checkWeaponShow(self):
@@ -321,6 +337,7 @@ class Player:
 
     #update function for player class
     def update(self):
+        self.onPortal = self.portal_check()
         self.gasRecharge()
         self.movement()
         self.recover_health()
@@ -659,8 +676,8 @@ BASE_DATA = {
     "map": base_map,
     "spawns": {
         "npc": [
-            ["basic", [9.5, 2.5]],
-            ["zombie", [9.5, 4.5]]
+            #["basic", [9.5, 2.5]],
+            #["zombie", [9.5, 4.5]]
         ],
         "passive": [
             {
@@ -692,8 +709,8 @@ BASE_DATA = {
                 "usetextbox": True,
                 "myline": "Hello Shrek, welcome to the cul- club, yes I meant club",
                 "pitch": "mid",
-                "scale": 1,
-                "shift": 0.3,
+                "scale": 0.8,
+                "shift": 0.2,
                 "special_tag": None
             }
         ],
@@ -775,10 +792,16 @@ class Map:
     
     def load_level(self, lvl_num):
         lvldata = LEVEL_DATA[str(lvl_num)]
-        lvlmap, lvlspawn = lvldata["map"], lvldata["spawns"]
+        lvlmap, lvlspawn, portalLoc = lvldata["map"], lvldata["spawns"], lvldata["portal"]
+
+        global PORTAL_X, PORTAL_Y
+        PORTAL_X, PORTAL_Y = portalLoc[0], portalLoc[1]
 
         self.change_map(lvlmap)
-        self.game.object_handler.load_level_spawns(lvlspawn)
+        try:
+            self.game.object_handler.load_level_spawns(lvlspawn)
+        except AttributeError:
+            self.need_to_load = lvlspawn
 
     #debug thinkgy
     def draw(self):
@@ -1115,7 +1138,7 @@ class ObjectRenderer:
 
     def next_portal_frame(self):
         px, py = self.game.player.map_pos
-        if distance_formula(PORTAL_X, PORTAL_Y, px, py) < 11:
+        if distance_formula(PORTAL_X, PORTAL_Y, px, py) < 10:
             self.portal_frame_n += 1; self.portal_frame_n %= 4
             self.wall_textures["p"] = self.portal_frames[self.portal_frame_n]
 
@@ -1166,6 +1189,11 @@ class ObjectRenderer:
     
     #dictionary to store the textures of walls
     def load_wall_textures(self):
+        #for every item in the textures dir that ends with .png and whos name is numeric, add it to the directory as a value with its number as its key
+        out_dict = {int(pth.replace('.png', '')) : self.get_texture(f'resources/textures/' + pth) for pth in os.listdir('resources/textures') if pth.endswith('.png') and pth.replace('.png', '').isnumeric()}
+        out_dict["p"] = self.get_texture('resources/textures/portal/0.png')
+        return out_dict
+
         return {
             1: self.get_texture('resources/textures/1.png'),
             2: self.get_texture('resources/textures/2.png'),
@@ -1229,6 +1257,10 @@ class SpriteObject:
         if -self.IMAGE_HALF_WIDTH < self.screen_x < (WIDTH + self.IMAGE_HALF_WIDTH) and self.norm_dist > 0.5:
             self.get_sprite_projection()
 
+    def self_destruct(self):
+        self.game.object_handler.sprite_list.remove(self)
+        del self
+
     #update sprite
     def update(self):
         self.get_sprite()
@@ -1256,6 +1288,10 @@ class Pickup(SpriteObject):
         px, py = self.game.player.map_pos
         return distance_formula(sx, sy, px, py) <= self.pickup_range
     
+    def self_destruct(self):
+        self.game.object_handler.pickup_list.remove(self)
+        del self
+
     def update_sub(self):
         removed = False
         if self.in_player_range():
@@ -1394,7 +1430,6 @@ class AnimatedSprite(SpriteObject):
         images = deque()
         for file_name in os.listdir(path):
             if os.path.isfile(os.path.join(path, file_name)):
-                print(path + "/" + file_name)
                 img = pg.image.load(path + "/" + file_name).convert_alpha()
                 images.append(img)
         return images
@@ -1415,10 +1450,6 @@ class ObjectHandler:
         self.npc_sprite_path = 'resources/sprites/npc'
         self.static_sprite_path = 'resources/sprites/static/'
         self.anim_sprite_path = 'resources/sprites/animated'
-        add_sprite = self.add_sprite
-        add_npc = self.add_npc
-        add_pass = self.add_passive
-        add_pickup = self.add_pickup
 
         #dictionary of npc positions
         self.npc_positions = {}
@@ -1426,15 +1457,9 @@ class ObjectHandler:
         #dictionary of basicpassivenpcs' and how centered they are, the more center the more priority for talking to him
         self.passive_centered = {}
 
-        #Create static sprites
-
-        #add_sprite(SpriteObject(game, path="resources/sprites/static/cursedtree.png", pos=(9.5, 10.0), scale=1.2, shift=-0.12))
-
         if not self.game.map.need_to_load == None:
             self.load_level_spawns(self.game.map.need_to_load)
-
-        #create pickups   self, game, pos, type, path=None, number=1, scale=0.25, shift=0, subtype = ""
-        
+            self.game.map.need_to_load = None    
 
     #update all individual sprites and npcs
     def update(self):
@@ -1463,7 +1488,15 @@ class ObjectHandler:
         #go through every sprite and if it has the update_sub function, run it (This will be used for subclasses that have extra abilities that will all be run with update_sub)
         [sprite.update_sub() for sprite in self.sprite_list if callable(getattr(sprite, "update_sub", None))]
 
+    def clear_entities(self):
+        [sprite.self_destruct() for sprite in self.sprite_list]
+        [npc.self_destruct() for npc in self.npc_list]
+        [passive.self_destruct() for passive in self.passive_list]
+        [pickup.self_destruct() for pickup in self.pickup_list]
+
     def load_level_spawns(self, spawndict):    
+        self.clear_entities()
+
         if "npc" in spawndict:
             npcar = spawndict["npc"]
 
@@ -1720,6 +1753,10 @@ class NPC(AnimatedSprite):
         self.health -= dmg
         self.pain = True
         self.check_health()
+
+    def self_destruct(self):
+        self.game.object_handler.npc_list.remove(self)
+        del self
 
     #update npc
     def update(self):
