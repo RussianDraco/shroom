@@ -1,0 +1,28 @@
+{
+    "1" : {
+        "map": [
+            [1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 1],
+            [2, 0, 0, 0, 2],
+            [3, 0, 0, 0, 3],
+            [4, 4, 4, 4, 4]],
+        "spawns": {
+            "npc": [
+                ["basic", [2.5, 2.5]]
+            ],
+            "passive": [
+                {
+                    "name": "friendly ghost",
+                    "path": "resources/sprites/passive/ghost.png",
+                    "pos": [3.5, 2.5],
+                    "usetextbox": true,
+                    "myline": "hey buddy",
+                    "pitch": "high",
+                    "scale": 0.75,
+                    "shift": 0,
+                    "special_tag": null
+                }
+            ]
+        }
+    }
+}

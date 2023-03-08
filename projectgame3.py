@@ -15,7 +15,8 @@ import math
 import os
 from collections import deque
 from random import randint, random, choice, uniform
-import numpy as np
+import json
+#import numpy as np
 
 ###BASIC FUNCTIONS###
 #distance formula func
@@ -26,6 +27,11 @@ def distance_formula(x1, y1, x2, y2):
 def number_distances(ar, num):
     return [abs(i-num) for i in ar]
 
+def get_json(path):
+    with open(path) as json_file:
+        data = json.load(json_file)
+    json_file.close()
+    return data
 
 ###SETTINGS###
 
@@ -41,13 +47,13 @@ HALF_HEIGHT = HEIGHT // 2
 FPS = 60
 
 #player vars
-PLAYER_POS = 1.5, 1.5  # mini_map
+PLAYER_POS = 1.5, 1.5  # cur_map
 PLAYER_ANGLE = 0
 PLAYER_SPEED = 0.004
 PLAYER_ROT_SPEED = 0.0015
 PLAYER_SIZE_SCALE = 60
 PLAYER_MAX_HEALTH = 100
-PLAYER_MAX_ARMOR = 100
+PLAYER_MAX_ARMOR = 0
 RECOVERY_DELAY = 9999
 
 QUEST_LIMIT = 3
@@ -91,12 +97,12 @@ ICON_WIDTH, ICON_HEIGHT = 80, 80
 #stats class for enemy npcs
 class Stats: #just a class to store npc stats
     def __init__(self, attack_dist, speed, size, health, attack_dmg, accuracy):
-            self.attack_dist = attack_dist
-            self.speed = speed
-            self.size = size
-            self.health = health
-            self.attack_damage = attack_dmg
-            self.accuracy = accuracy
+        self.attack_dist = attack_dist
+        self.speed = speed
+        self.size = size
+        self.health = health
+        self.attack_damage = attack_dmg
+        self.accuracy = accuracy
 
 
 ENEMIES = {
@@ -501,11 +507,123 @@ class SpecialQuestManager:
 
 ###MAP###
 
+##MAZE GENERATION##
+
+class MazeGenerator:
+    def __init__(self):
+        pass
+
+    def generate_maze(self, w, h):
+        def resetMaze(ar):
+            nI = 0
+            nJ = 0
+            for r in ar:
+                nI = 0
+                for s in r:
+                    ar[nJ][nI] = 1
+                    nI+=1
+                nJ+=1
+            return ar
+
+        def isMazeValid(ar, w_, h_, finder = False, startpos = (0,0)):
+            #for y_ in range(h_):
+            #    for x_ in range(w_)
+            seen = set([startpos])
+            queue = [startpos]
+
+            while queue:
+                i,j = queue.pop(0)
+                seen.add((i, j))
+                for di, dj in [(1,0),(-1,0),(0,1),(0,-1)]:
+                    ni, nj = i+di, j+dj
+
+                    if (ni, nj) in seen:
+                        continue
+
+                    if ni<0 or nj<0 or ni>=w_ or nj>=h_:
+                        continue
+
+                    if ar[ni][nj] == 2:
+                        if finder:
+                            return True, list(seen)
+                        return True
+
+                    if ar[ni][nj] == 1:
+                        continue
+
+                    if ar[ni][nj] == 0:
+                        seen.add((ni,nj))
+                        queue.append((ni,nj))
+            
+            return False
+
+        maze = []
+
+        for y in range(h-2):
+            addar = []
+            for x in range(w-2):
+                addar.append(1)
+            maze.append(addar)
+
+        x2, y2 = 0, 0
+
+        ran = random.randint(0, (w-2)*(h-2)-1)
+        x2, y2 = ran % (w-2), math.floor(ran/(w-2))
+        maze[y2][x2] = 2
+
+        e = 0
+        while not isMazeValid(maze, w-2, h-2):
+            while not maze[y2][x2] == 1:
+                ran = random.randint(0, (w-2)*(h-2)-1)
+                x2, y2 = ran % (w-2), math.floor(ran/(w-2))
+            maze[y2][x2] = 0
+            e+=1
+
+            if e >= round((w-2) * (h-2) * 0.75):
+                maze = resetMaze(maze)
+                x2, y2 = 0, 0
+
+                ran = random.randint(0, (w-2)*(h-2)-1)
+                x2, y2 = ran % (w-2), math.floor(ran/(w-2))
+                maze[y2][x2] = 2
+                e = 0
+
+        t, spawns = isMazeValid(maze, w-2, h-2, True)
+
+        spawn = spawns[random.randint(0, len(spawns)-1)]
+
+        y3, x3 = spawn
+
+        maze[y3][x3] = "S"
+
+        n = 0
+        for r in maze:
+            n_r = [1]
+            for s in r:
+                n_r.append(s)
+            n_r.append(1)
+            maze[n] = n_r
+            n+=1
+
+        top_down_padding = []
+
+        for x in range(w):
+            top_down_padding.append(1)
+
+        final_maze = [top_down_padding]
+
+        for r in maze:
+            final_maze.append(r)
+        final_maze.append(top_down_padding)
+
+        return final_maze
+
 
 #define map
+#false for nothing, numbers for different textures and "p"
 _ = False
 P = "p"
-mini_map = [
+base_map = [
     [1, 1, 1, 1, 1, P, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, _, _, _, _, _, _, _, _, _, 3, 2, 2, 2, _, 1],
     [1, _, _, _, _, _, _, _, _, _, 2, _, _, _, 2, 1],
@@ -522,7 +640,57 @@ mini_map = [
     #0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16
 ]
 
-PORTAL_X, PORTAL_Y = 5, 0
+#map info for the spawn/base/home
+BASE_DATA = {
+    "map": base_map,
+    "spawns": {
+        "npc": [
+            ["basic", [9.5, 2.5]]
+        ],
+        "passive": [
+            {
+                "name": "Johny",
+                "path": 'resources/sprites/passive/johny.png',
+                "pos": [1.5, 3.5],
+                "usetextbox": True,
+                "myline": "Hello Shrek, welcome to hell, I am Johny, you should probably beware of the demons patrolling around here, use your onions as a defense, there is a bag right there",
+                "pitch": "deep",
+                "scale": 1,
+                "shift": 0.27,
+                "special_tag": 'johny'
+            },
+            {
+                "name": "Bloated Goblin",
+                "path": 'resources/sprites/passive/bellygoblin.png',
+                "pos": [14.5, 7.5],
+                "usetextbox": True,
+                "myline": "Ohhhh, yesterday I ate a- something I wasn't supposed, now I have a terrrrible stomach ache",
+                "pitch": "high",
+                "scale": 1.25,
+                "shift": 0.1,
+                "special_tag": 'bloatedgoblin'
+            },
+            {
+                "name": "Donkey",
+                "path": 'resources/sprites/passive/donkey.png',
+                "pos": [3.5, 9.5],
+                "usetextbox": True,
+                "myline": "Hello Shrek, welcome to the cul- club, yes I meant club",
+                "pitch": "mid",
+                "scale": 1,
+                "shift": 0.3,
+                "special_tag": None
+            }
+        ]
+    }
+}
+
+cur_map = None
+
+LEVEL_DATA = get_json('resources/json/levels.json')
+
+#The x and y location of the place the portal is facing, 
+PORTAL_X, PORTAL_Y = 5, 1
 
 #   for ALL_EMPTY_COLLIDERS, when adding an empty collider, you need to go into the game and check the position 
 #   of where you actually want to put it because it sometimes registers differently then seen on map, LIKE ONE OFF ON THE X OR Y AXIS THEN WHAT IT LOOKS LIKE
@@ -536,32 +704,59 @@ ALL_EMPTY_COLLIDER = [(14, 7)]
 
 
 #map class
-"""
-EXTRA_MAP_DATA = {
-    "fog" : [(9, 8), (15, 23)] #top left coord and bottom right coord
-}
-"""
+
 
 class Map:
     #store some variables, this class is mostly used for fetching map vars
     def __init__(self, game):
         self.game = game
-        self.mini_map = mini_map
+
+        self.load_base()
+
+        self.cur_map = cur_map
         self.world_map = {}
-        self.rows = len(self.mini_map)
-        self.cols = len(self.mini_map[0])
+        self.rows = len(self.cur_map)
+        self.cols = len(self.cur_map[0])
+        self.current_level = 0
+
+        #var to hold spawn dict until object handler is generated to actaully spawn them
+        self.need_to_load = None
+
         self.get_map()
 
     def get_map(self):
-        for j, row in enumerate(self.mini_map):
+        for j, row in enumerate(self.cur_map):
             for i, value in enumerate(row):
-                if value:
+                if value or not value == 0:
                     self.world_map[(i, j)] = value
 
+    def load_base(self):
+        lvldata = BASE_DATA
+        lvlmap, lvlspawn = lvldata["map"], lvldata["spawns"]
+
+        self.change_map(lvlmap)
+        try:
+            self.game.object_handler.load_level_spawns(lvlspawn)
+        except AttributeError:
+            self.need_to_load = lvlspawn
+
     def change_map(self, newmap): #should update to new map
-        global mini_map
-        mini_map = newmap
+        global cur_map
+        cur_map = newmap
+
+        self.cur_map = cur_map
+        self.world_map = {}
+        self.rows = len(self.cur_map)
+        self.cols = len(self.cur_map[0])
+
         self.get_map()
+    
+    def load_level(self, lvl_num):
+        lvldata = LEVEL_DATA[str(lvl_num)]
+        lvlmap, lvlspawn = lvldata["map"], lvldata["spawns"]
+
+        self.change_map(lvlmap)
+        self.game.object_handler.load_level_spawns(lvlspawn)
 
     #debug thinkgy
     def draw(self):
@@ -1075,7 +1270,8 @@ class Pickup(SpriteObject):
             del self
             
 class BasicPassiveNPC(SpriteObject): #NEED TO MAKE A METHOD TO ONLY ALLOW PLAYER TO SPEAK TO ONE NPC AT A TIME AND NOT HAVE MULTIPLE MESSAGES FOR PRESS SPACE TO TALK APPEAR
-    def __init__(self, game, path='resources/sprites/passive/ghost.png', pos=(10.5, 3.5), usetextbox=True, myline="hello", name="character", pitch="high", scale=0.75, shift=0, special_tag = None): #pitch: high/mid/deep
+    def __init__(self, game, path='resources/sprites/passive/ghost.png', pos=(10.5, 3.5), usetextbox=True, myline="hello", 
+                 name="character", pitch="high", scale=0.75, shift=0, special_tag = None): #pitch: high/mid/deep
         super().__init__(game, path, pos, scale, shift)
         self.talkrange = 2.5
         self.pos = pos
@@ -1233,20 +1429,15 @@ class ObjectHandler:
         #Create special characters
 
         #Create npcs
-        add_npc(NPC(game, pos=(1.5, 3.5)))
-        #add_npc(NPC(game, pos=(9.5,5.5)))
-        #add_npc(NPC(game, pos=(9.5,5.5)))
-        #add_npc(NPC(game, pos=(9.5,5.5)))
+        #add_npc(NPC(game, pos=(1.5, 3.5)))
 
         #create passives
-        add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/johny.png', pos=(1.5, 3.5), myline="Hello Shrek, welcome to hell, I am Johny, you should probably beware of the demons patrolling around here, use your onions as a defense, there is a bag right there", name="Johny", pitch="deep", scale=1, shift=0.27, special_tag='johny'))
+        #add_pass(BasicPassiveNPC(game, pos=(13.5, 4.5), myline="Hello, I run politics", name="friendly ghost", shift=0.2))
 
-        add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/bellygoblin.png' , pos=(14.5, 7.5), myline="Ohhhh, yesterday I ate a- something I wasn't supposed, now I have a terrrrible stomach ache", name="bloated goblin", pitch="high", scale=1.25, shift=0.1, special_tag='bloatedgoblin'))
+        #add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/donkey.png', pos=(5.5, 9.5), myline="...", name="donkey clone", pitch=None, shift=0.3))
 
-        add_pass(BasicPassiveNPC(game, pos=(13.5, 4.5), myline="Hello, I run politics", name="friendly ghost", shift=0.2))
-
-        add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/donkey.png', pos=(3.5, 9.5), myline="Hello Shrek, welcome to the cul- club, yes I meant club", name="donkey", pitch="mid", shift=0.3))
-        add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/donkey.png', pos=(5.5, 9.5), myline="...", name="donkey clone", pitch=None, shift=0.3))
+        if not self.game.map.need_to_load == None:
+            self.load_level_spawns(self.game.map.need_to_load)
 
         #create pickups   self, game, pos, type, path=None, number=1, scale=0.25, shift=0, subtype = ""
         add_pickup(Pickup(self.game, (5, 5), 'item', subtype=self.game.inventory_system.get_item_by_id(1)))
@@ -1278,6 +1469,25 @@ class ObjectHandler:
 
         #go through every sprite and if it has the update_sub function, run it (This will be used for subclasses that have extra abilities that will all be run with update_sub)
         [sprite.update_sub() for sprite in self.sprite_list if callable(getattr(sprite, "update_sub", None))]
+
+    def load_level_spawns(self, spawndict):            
+        if "npc" in spawndict:
+            npcar = spawndict["npc"]
+
+            for npc in npcar:
+                npctype = npc[0]
+                npcspawn = npc[1][0], npc[1][1]
+
+                enemy_data = ENEMIES[npctype]
+
+                self.add_npc(NPC(self.game, enemy_data["path"], npcspawn, enemy_data["scale"], enemy_data["shift"], enemy_data["animation_time"], enemy_data["stats"]))
+
+        if "passive" in spawndict:
+            passar = spawndict["passive"]
+
+            for passive in passar:
+                self.add_passive(BasicPassiveNPC(self.game, passive["path"], (passive["pos"][0], passive["pos"][1]), passive["usetextbox"], passive["myline"], 
+                                                 passive["name"], passive["pitch"], passive["scale"], passive["shift"], passive["special_tag"]))
 
     #function to add an npc
     def add_npc(self, npc):
@@ -1688,7 +1898,7 @@ class NPC(AnimatedSprite):
 class PathFinding:
     def __init__(self, game):
         self.game = game
-        self.map = game.map.mini_map
+        self.map = game.map.cur_map
         self.ways = [-1, 0], [0, -1], [1, 0], [0, 1], [-1, -1], [1, -1], [1, 1], [-1, 1]
         self.graph = {}
         self.get_graph()
