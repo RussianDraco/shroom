@@ -47,7 +47,8 @@ PLAYER_SPEED = 0.004
 PLAYER_ROT_SPEED = 0.0015
 PLAYER_SIZE_SCALE = 60
 PLAYER_MAX_HEALTH = 100
-RECOVERY_DELAY = 3000
+PLAYER_MAX_ARMOR = 100
+RECOVERY_DELAY = 9999
 
 QUEST_LIMIT = 3
 
@@ -129,6 +130,7 @@ class Player:
         self.rel = pg.mouse.get_rel()[0]
         self.shot = False
         self.health = PLAYER_MAX_HEALTH
+        self.armor = PLAYER_MAX_ARMOR
         self.ammo = 3
         self.showWeapon = True
         self.time_prev = pg.time.get_ticks()
@@ -184,7 +186,13 @@ class Player:
 
     #function to lower health, show hurt screen, play hurt sound and check if health too low
     def get_damage(self, dmg):
-        self.health -= dmg
+        if self.armor <= 0:
+            self.health -= dmg
+        else:
+            self.armor -= dmg
+            if self.armor < 0:
+                self.armor = 0
+
         #self.game.object_renderer.player_damage()
         #self.game.sound.player_pain.play()
         self.check_game_over()
@@ -399,7 +407,7 @@ class Quest:
         self.id = id
 
 QUEST_DICT = {
-    1 : Quest("Get medicine", "medciiine", "gather", 1, 1, 1, ['special', 'bloatedgoblin'], source_tag='bloatedgoblin', talk_to_finish=True, gather_remove=True)
+    1 : Quest("Get medicine", "get medicine for bloated goblin", "gather", 1, 1, 1, ['special', 'bloatedgoblin'], source_tag='bloatedgoblin', talk_to_finish=True, gather_remove=True)
 }
 
 class QuestManager:
@@ -496,8 +504,9 @@ class SpecialQuestManager:
 
 #define map
 _ = False
+P = "p"
 mini_map = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, P, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, _, _, _, _, _, _, _, _, _, 3, 2, 2, 2, _, 1],
     [1, _, _, _, _, _, _, _, _, _, 2, _, _, _, 2, 1],
     [1, _, _, _, _, _, _, _, _, _, 2, _, _, _, 2, 1],
@@ -512,6 +521,8 @@ mini_map = [
     [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     #0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16
 ]
+
+PORTAL_X, PORTAL_Y = 5, 0
 
 #   for ALL_EMPTY_COLLIDERS, when adding an empty collider, you need to go into the game and check the position 
 #   of where you actually want to put it because it sometimes registers differently then seen on map, LIKE ONE OFF ON THE X OR Y AXIS THEN WHAT IT LOOKS LIKE
@@ -546,6 +557,11 @@ class Map:
             for i, value in enumerate(row):
                 if value:
                     self.world_map[(i, j)] = value
+
+    def change_map(self, newmap): #should update to new map
+        global mini_map
+        mini_map = newmap
+        self.get_map()
 
     #debug thinkgy
     def draw(self):
@@ -870,12 +886,19 @@ class ObjectRenderer:
         self.sky_offset = 0
         #self.blood_screen = 
         #self.gameoverImg = 
+        self.current_portal_frame = 0
         
 
     #function to draw background(sky) and to render all game objects
     def draw(self):
         self.draw_background()
         self.render_game_objects()
+
+    def next_portal_frame(self):
+        px, py = self.game.player.map_pos
+        if distance_formula(PORTAL_X, PORTAL_Y, px, py) < 11:
+            self.wall_textures["p"] = self.get_texture('resources/textures/portal/' + str(self.current_portal_frame) + '.png')
+            self.current_portal_frame += 1; self.current_portal_frame %= 4
 
     #if you lost, show lose screen
     def game_over(self):
@@ -890,7 +913,7 @@ class ObjectRenderer:
 
     #draw sky and floor, not currently used
     def draw_background(self):
-        self.sky_offset = (100*self.game.player.rel) % WIDTH
+        self.sky_offset = (100 * self.game.player.rel) % WIDTH
         self.screen.fill('black')
         
         self.screen.blit(self.sky_image, (-self.sky_offset, 0))
@@ -930,6 +953,7 @@ class ObjectRenderer:
             3: self.get_texture('resources/textures/3.png'),
             4: self.get_texture('resources/textures/4.png'),
             5: self.get_texture('resources/textures/5.png'),
+            "p": self.get_texture('resources/textures/portal/0.png')
         }
 
 
@@ -1213,7 +1237,7 @@ class ObjectHandler:
         #add_npc(NPC(game, pos=(9.5,5.5)))
 
         #create passives
-        add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/johny.png', pos=(1.5, 3.5), myline="Hello Shrek, welcome to hell, I am Johny, you should probably beware of the demons patrolling around here, use your onions as a defense, there is a bag right there", name="Johny", pitch="deep", scale=1, shift=0.27))
+        add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/johny.png', pos=(1.5, 3.5), myline="Hello Shrek, welcome to hell, I am Johny, you should probably beware of the demons patrolling around here, use your onions as a defense, there is a bag right there", name="Johny", pitch="deep", scale=1, shift=0.27, special_tag='johny'))
 
         add_pass(BasicPassiveNPC(game, path='resources/sprites/passive/bellygoblin.png' , pos=(14.5, 7.5), myline="Ohhhh, yesterday I ate a- something I wasn't supposed, now I have a terrrrible stomach ache", name="bloated goblin", pitch="high", scale=1.25, shift=0.1, special_tag='bloatedgoblin'))
 
@@ -1713,7 +1737,7 @@ class PathFinding:
 
 
 DISPLAY_RES = DISPLAY_X, DISPLAY_Y = 600, 450
-SLOT_SIZE = SLOT_X, SLOT_Y = 50, 50
+SLOT_SIZE = SLOT_X, SLOT_Y = 75, 75
 
 #class for inventory icons, creates one per item in inventory
 class InventoryIcon:
@@ -1746,18 +1770,20 @@ class InventoryIcon:
 
         icon_img = pg.transform.scale(icon_img, (SLOT_X - 6, SLOT_Y - 6))
 
-        doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 100)
+        doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 25)
 
-        quantity_txt = doom_font.render(str(self.quantity), False, (0, 0, 0))
+        if self.quantity > 1:
+            quantity_txt = doom_font.render(str(self.quantity), False, (0, 0, 0))
 
-        my_surface.blit(icon_img, (3, 3))
-        my_surface.blit(quantity_txt, (SLOT_X - 4, SLOT_Y - 4)) ##NEED TO FIX QUANTITY TEXT
+        my_surface.blit(icon_img, (2, 3))
+        if self.quantity > 1:
+            my_surface.blit(quantity_txt, (SLOT_X - quantity_txt.get_width() - 5, SLOT_Y - quantity_txt.get_height())) ##NEED TO FIX QUANTITY TEXT
 
         #return a finished icon surface
 
         return my_surface
 
-QUEST_RES = QUEST_X, QUEST_Y = 150, 75
+QUEST_RES = QUEST_X, QUEST_Y = 270, 100
 
 class QuestIcon:
     def __init__(self, game, id):
@@ -1788,11 +1814,11 @@ class QuestIcon:
 
         title_txt = doom_font.render(self.title, False, (0, 0, 0))
 
-        ycor = 50
-        for desctxt in self.game.text_box.wrap_text(self.description, 15):
+        ycor = 40
+        for desctxt in self.game.text_box.wrap_text(self.description, 30):
             desc_txt = doom_font.render(desctxt, False, (0, 0, 0))
             my_surface.blit(desc_txt, (15, ycor))
-            ycor += 10
+            ycor += 20
 
         my_surface.blit(title_txt, (15, 15))
 
@@ -1840,7 +1866,14 @@ class DisplayMenu:
 
     def draw_quests(self):
         quest_surface = pg.Surface((int(QUEST_X * 1.5), DISPLAY_Y))
-        #quest_surface.set_alpha(1)
+
+        quest_surface.set_alpha(100)
+
+        doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 60)
+
+        curquests = doom_font.render("Quests", False, (255, 255, 255))
+
+        quest_surface.blit(curquests, (int(QUEST_X * 1.5)//2 - 75, 10))
 
         self.quest_list = []
         for quest in self.game.player.current_quests:
@@ -1864,10 +1897,9 @@ class DisplayMenu:
         for icon in self.quest_icons:
             slot = icon.update()
 
-
             x_padding, y_padding = 0, 30
 
-            #quest_surface.blit(slot, (int(WIDTH * 0.66), pos * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30))
+            quest_surface.blit(slot, (int(QUEST_Y * 0.5), pos * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 75))
 
             pos+=1
         
@@ -1957,7 +1989,7 @@ class StatBar:
 
         self.screen.blit(ammo, (350, HEIGHT + 20))
 
-        armor = doom_font.render("Armor: 100", False, (255, 0, 0))
+        armor = doom_font.render("Armor:" + str(self.game.player.armor), False, (255, 0, 0))
 
         self.screen.blit(armor, (590, HEIGHT + 20))
 
@@ -1975,14 +2007,21 @@ class Game:
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
         self.clock = pg.time.Clock()
         self.delta_time = 1
+
+        #event for animation i think
         self.global_trigger = False
         self.global_event = pg.USEREVENT + 0
 
+        #event for adding chars to the textbox
         self.next_char_trigger = False
         self.next_char_event = pg.USEREVENT + 1
 
+        #event for turning portal
+        self.portal_event = pg.USEREVENT + 2
+
         pg.time.set_timer(self.global_event, 40)
         pg.time.set_timer(self.next_char_event, 10)
+        pg.time.set_timer(self.portal_event, 200)
         #dictionary of key isPressed?
         self.keys = {
             pg.K_w: False,
@@ -2047,11 +2086,17 @@ class Game:
             if event.type == pg.QUIT:
                 pg.quit()
                 sys.exit()
+            #an event that is triggered every... i think 40 ms...
             if event.type == self.global_event:
                 self.global_trigger = True
                 self.player.checkWeaponShow()
-            if event.type == self.next_char_event:
+
+            elif event.type == self.next_char_event:
                 self.next_char_trigger = True
+
+            elif event.type == self.portal_event:
+                self.object_renderer.next_portal_frame()
+
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     pg.quit()
