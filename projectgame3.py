@@ -145,7 +145,7 @@ class Player:
     #define class variables when instanced
     def __init__(self, game):
         self.game = game
-        self.x, self.y = PLAYER_POS
+        self.x, self.y = BASE_DATA["spawn"][0], BASE_DATA["spawn"][1]
         self.angle = PLAYER_ANGLE
         self.rel = pg.mouse.get_rel()[0]
         self.shot = False
@@ -168,17 +168,15 @@ class Player:
 
         self.onPortal = False
 
-        #self.last_teleport = 0
-        #self.portal_delay = 5000
+    def teleport(self, x, y = None):
+        if type(x) == type(['a']):
+            self.x = x[0]; self.y = x[1]
+            return
+        self.x = x; self.y = y
 
     def portal_check(self):
-        #if pg.time.get_ticks() - self.last_teleport > self.portal_delay:
-        #    return False
-
-        px, py = self.map_pos
-        if PORTAL_X == px and PORTAL_Y == py:
-            self.game.map.load_level(1)
-            #self.last_teleport = pg.time.get_ticks()
+        if distance_formula(PORTAL_X, PORTAL_Y, self.x, self.y) < 0.75:
+            self.game.map.entered_portal()
             return True
         return False
 
@@ -674,11 +672,9 @@ base_map = [
 #map info for the spawn/base/home
 BASE_DATA = {
     "map": base_map,
+    "portal": [5, 1],
+    "spawn": [1.5, 1.5],
     "spawns": {
-        "npc": [
-            #["basic", [9.5, 2.5]],
-            #["zombie", [9.5, 4.5]]
-        ],
         "passive": [
             {
                 "name": "Johny",
@@ -724,13 +720,11 @@ BASE_DATA = {
     }
 }
 
+PORTAL_X, PORTAL_Y = 5, 1
 
 cur_map = None
 
 LEVEL_DATA = get_json('resources/json/levels.json')
-
-#The x and y location of the place the portal is facing, 
-PORTAL_X, PORTAL_Y = 5, 1
 
 #   for ALL_EMPTY_COLLIDERS, when adding an empty collider, you need to go into the game and check the position 
 #   of where you actually want to put it because it sometimes registers differently then seen on map, LIKE ONE OFF ON THE X OR Y AXIS THEN WHAT IT LOOKS LIKE
@@ -742,10 +736,7 @@ PORTAL_X, PORTAL_Y = 5, 1
 # need to add all empty colliders here, if there is a coordinate here, it will not be able to be walked through, do not forget coordinates start from 1, y increases downwards, x increases to the right
 ALL_EMPTY_COLLIDER = [(14, 7)]
 
-
 #map class
-
-
 class Map:
     #store some variables, this class is mostly used for fetching map vars
     def __init__(self, game):
@@ -759,9 +750,21 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 0
+        self.current_level = 1
+        self.inBase = True
 
         self.get_map()
+
+    def entered_portal(self):
+        if self.inBase:
+            self.game.player.teleport(LEVEL_DATA[str(self.current_level)]["spawn"])
+            self.load_level(self.current_level)
+            self.inBase = False
+        else:
+            self.game.player.teleport(BASE_DATA["spawn"])
+            self.load_base()
+            self.current_level += 1
+            self.inBase = True
 
     def get_map(self):
         for j, row in enumerate(self.cur_map):
@@ -772,6 +775,9 @@ class Map:
     def load_base(self):
         lvldata = BASE_DATA
         lvlmap, lvlspawn = lvldata["map"], lvldata["spawns"]
+
+        global PORTAL_X, PORTAL_Y
+        PORTAL_X, PORTAL_Y = BASE_DATA["portal"][0], BASE_DATA["portal"][1]
 
         self.change_map(lvlmap)
         try:
@@ -1489,6 +1495,12 @@ class ObjectHandler:
         [sprite.update_sub() for sprite in self.sprite_list if callable(getattr(sprite, "update_sub", None))]
 
     def clear_entities(self):
+        #repeating twice works better ig?
+        [sprite.self_destruct() for sprite in self.sprite_list]
+        [npc.self_destruct() for npc in self.npc_list]
+        [passive.self_destruct() for passive in self.passive_list]
+        [pickup.self_destruct() for pickup in self.pickup_list]
+
         [sprite.self_destruct() for sprite in self.sprite_list]
         [npc.self_destruct() for npc in self.npc_list]
         [passive.self_destruct() for passive in self.passive_list]
