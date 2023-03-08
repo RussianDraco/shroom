@@ -711,6 +711,8 @@ class Map:
     def __init__(self, game):
         self.game = game
 
+        #var to hold spawn dict until object handler is generated to actaully spawn them
+        self.need_to_load = None
         self.load_base()
 
         self.cur_map = cur_map
@@ -718,9 +720,6 @@ class Map:
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
         self.current_level = 0
-
-        #var to hold spawn dict until object handler is generated to actaully spawn them
-        self.need_to_load = None
 
         self.get_map()
 
@@ -1470,7 +1469,7 @@ class ObjectHandler:
         #go through every sprite and if it has the update_sub function, run it (This will be used for subclasses that have extra abilities that will all be run with update_sub)
         [sprite.update_sub() for sprite in self.sprite_list if callable(getattr(sprite, "update_sub", None))]
 
-    def load_level_spawns(self, spawndict):            
+    def load_level_spawns(self, spawndict):    
         if "npc" in spawndict:
             npcar = spawndict["npc"]
 
