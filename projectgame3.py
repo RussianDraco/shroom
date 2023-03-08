@@ -1074,7 +1074,7 @@ class BasicPassiveNPC(SpriteObject): #NEED TO MAKE A METHOD TO ONLY ALLOW PLAYER
 
     def event_call(self, event):
         if self.player_in_range() and self.interact_enabled:
-            if event.key == pg.K_e and not self.game.text_box.showing and self.game.text_box.time_limit_done() and self.use_textbox:
+            if event.key == pg.K_e and not self.game.text_box.showing and self.game.text_box.time_limit_done() and self.use_textbox: #maybe add a self.screen_x req so that you cant talk to people behind you
                 self.special_check()
                 if not self.special_tag == None:
                     self.game.quest_manager.quest_watch(self)
@@ -1746,12 +1746,12 @@ class InventoryIcon:
 
         icon_img = pg.transform.scale(icon_img, (SLOT_X - 6, SLOT_Y - 6))
 
-        doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 30)
+        doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 100)
 
         quantity_txt = doom_font.render(str(self.quantity), False, (0, 0, 0))
 
         my_surface.blit(icon_img, (3, 3))
-        my_surface.blit(quantity_txt, (SLOT_X - 6, SLOT_Y - 6))
+        my_surface.blit(quantity_txt, (SLOT_X - 4, SLOT_Y - 4)) ##NEED TO FIX QUANTITY TEXT
 
         #return a finished icon surface
 
@@ -1779,18 +1779,22 @@ class QuestIcon:
         return self.draw()
 
     def draw(self):
-        icon_size = SLOT_SIZE
+        icon_size = QUEST_RES
 
         my_surface = pg.Surface(icon_size)
+        pg.draw.rect(my_surface, (255, 255, 255), pg.Rect(3, 3, QUEST_X - 6, QUEST_Y - 6))
 
         doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 30)
 
         title_txt = doom_font.render(self.title, False, (0, 0, 0))
-        desc_txt = doom_font.render(self.description, False, (0, 0, 0))
 
+        ycor = 50
+        for desctxt in self.game.text_box.wrap_text(self.description, 15):
+            desc_txt = doom_font.render(desctxt, False, (0, 0, 0))
+            my_surface.blit(desc_txt, (15, ycor))
+            ycor += 10
 
-
-        my_surface.blit(title_txt, ())
+        my_surface.blit(title_txt, (15, 15))
 
         #return a finished icon surface
 
@@ -1823,7 +1827,10 @@ class DisplayMenu:
             self.inven_surface.set_alpha(210)
 
             self.draw_inventory()
-            self.draw_quests()
+
+            quest_surface = self.draw_quests()
+
+            self.screen.blit(quest_surface, (int(DISPLAY_X * 1.3), 80))
 
             self.screen.blit(self.inven_surface, (80, 80))
 
@@ -1832,6 +1839,9 @@ class DisplayMenu:
             self.showing = not self.showing
 
     def draw_quests(self):
+        quest_surface = pg.Surface((int(QUEST_X * 1.5), DISPLAY_Y))
+        #quest_surface.set_alpha(1)
+
         self.quest_list = []
         for quest in self.game.player.current_quests:
             self.quest_list.append(quest)
@@ -1854,11 +1864,14 @@ class DisplayMenu:
         for icon in self.quest_icons:
             slot = icon.update()
 
+
             x_padding, y_padding = 0, 30
 
-            self.inven_surface.blit(slot, (int(WIDTH * 0.66), pos * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30))
+            #quest_surface.blit(slot, (int(WIDTH * 0.66), pos * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30))
 
             pos+=1
+        
+        return quest_surface
 
     def draw_inventory(self):
         self.item_list = []
