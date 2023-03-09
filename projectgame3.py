@@ -161,6 +161,20 @@ ENEMIES = {
             attack_dmg = 6,
             accuracy = 0.4
         )
+    },
+    "satansnovel": {
+        "path": 'resources/sprites/npc/satansnovel/0.png',
+        "scale": 1.5,
+        "shift": -0.05,
+        "animation_time": 120,
+        "stats": Stats(
+            attack_dist = 3,
+            speed = 0.05,
+            size = 1.5,
+            health = 150,
+            attack_dmg = 9,
+            accuracy = 0.4
+        )
     }
 }
 
@@ -704,7 +718,7 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            ["tridemon", [8.5, 2.5]]
+            ["satansnovel", [8.5, 2.5]]
         ],
         "passive": [
             {

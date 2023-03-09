@@ -22,7 +22,7 @@
         "spawn": [1.5, 1.5],
         "spawns": {
             "npc": [
-                
+                ["gemdemon", [6.5, 1.5]]
             ],
             "passive": [
                 {
