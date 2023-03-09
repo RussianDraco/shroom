@@ -50,7 +50,7 @@ FPS = 60
 PLAYER_POS = 1.5, 1.5  # cur_map
 PLAYER_ANGLE = 0
 PLAYER_SPEED = 0.004
-PLAYER_ROT_SPEED = 0.0015
+PLAYER_ROT_SPEED = 0.002
 PLAYER_SIZE_SCALE = 60
 PLAYER_MAX_HEALTH = 100
 PLAYER_MAX_ARMOR = 0
@@ -116,7 +116,7 @@ ENEMIES = {
             speed = 0.04,
             size = 1,
             health = 150,
-            attack_dmg = 8,
+            attack_dmg = 5,
             accuracy = 0.15
         )
     },
@@ -130,22 +130,36 @@ ENEMIES = {
             speed = 0.03,
             size = 1.75,
             health = 200,
-            attack_dmg = 11,
+            attack_dmg = 6,
             accuracy = 0.33
         )
     },
     "gemdemon": {
         "path" : 'resources/sprites/npc/gemdemon/0.png',
         "scale": 1.5,
-        "shift" : 2,
+        "shift" : -0.3,
         "animation_time" : 200,
         "stats" : Stats(
             attack_dist = 2.5,
             speed = 0.05,
             size = 1.5,
             health = 200,
-            attack_dmg = 13,
+            attack_dmg = 7,
             accuracy = 0.35
+        )
+    },
+    "tridemon": {
+        "path": 'resources/sprites/npc/tridemon/0.png',
+        "scale": 2,
+        "shift": -0.05,
+        "animation_time": 130,
+        "stats" : Stats(
+            attack_dist = 3,
+            speed = 0.07,
+            size = 2,
+            health = 200,
+            attack_dmg = 6,
+            accuracy = 0.4
         )
     }
 }
@@ -689,6 +703,9 @@ BASE_DATA = {
     "portal": [5, 1],
     "spawn": [1.5, 1.5],
     "spawns": {
+        "npc": [
+            ["tridemon", [8.5, 2.5]]
+        ],
         "passive": [
             {
                 "name": "Johny",
