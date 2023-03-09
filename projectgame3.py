@@ -2292,6 +2292,34 @@ class StatBar:
 
         self.drawGasIcon()
 
+###CODE FOR LORE###
+
+class lore:
+    
+    def __init__(self):
+        pg.init()
+        self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
+        self.img_dict = self.make_dict()
+        self.actually_run()
+    
+    @staticmethod
+    def get_texture(path, res=(TEXTURE_SIZE, TEXTURE_SIZE)):
+        texture = pg.image.load(path).convert_alpha()
+        return pg.transform.scale(texture, res)
+    
+    
+    def make_dict(self):
+        out_dict = {pth.replace('.png', '') : self.get_texture('resources/lore/' + pth, (1000, 1000)) for pth in os.listdir('resources/lore/')}
+        return out_dict
+
+    def actually_run(self):
+        print(self.img_dict)
+        
+        
+
+    
+
+
 
 ###GAME CODE###
 
@@ -2416,5 +2444,8 @@ class Game:
 
 #starts the game
 if __name__ == '__main__':
+    lorething = lore()
+    lore.actually_run()
+    
     game = Game()
     game.run()
