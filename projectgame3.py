@@ -16,6 +16,7 @@ import os
 from collections import deque
 from random import randint, random, choice, uniform
 import json
+import time
 #import numpy as np
 
 ###BASIC FUNCTIONS###
@@ -136,13 +137,13 @@ ENEMIES = {
     },
     "gemdemon": {
         "path" : 'resources/sprites/npc/gemdemon/0.png',
-        "scale": 1.5,
-        "shift" : -0.3,
+        "scale": 1,
+        "shift" : -0.15,
         "animation_time" : 200,
         "stats" : Stats(
             attack_dist = 2.5,
             speed = 0.05,
-            size = 1.5,
+            size = 1,
             health = 200,
             attack_dmg = 7,
             accuracy = 0.35
@@ -159,6 +160,20 @@ ENEMIES = {
             size = 2,
             health = 200,
             attack_dmg = 6,
+            accuracy = 0.4
+        )
+    },
+    "satansnovel": {
+        "path": 'resources/sprites/npc/satansnovel/0.png',
+        "scale": 1,
+        "shift": -0.05,
+        "animation_time": 120,
+        "stats": Stats(
+            attack_dist = 3,
+            speed = 0.05,
+            size = 1,
+            health = 150,
+            attack_dmg = 9,
             accuracy = 0.4
         )
     }
@@ -179,7 +194,7 @@ class Player:
         self.shot = False
         self.health = PLAYER_MAX_HEALTH
         self.armor = PLAYER_MAX_ARMOR
-        self.ammo = 3
+        self.ammo = 999
         self.showWeapon = True
         self.time_prev = pg.time.get_ticks()
         self.canMove = True
@@ -704,7 +719,7 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            ["tridemon", [8.5, 2.5]]
+            ["gemdemon", [8.5, 2.5]]
         ],
         "passive": [
             {
@@ -790,11 +805,13 @@ class Map:
         if self.inBase:
             self.game.player.teleport(LEVEL_DATA[str(self.current_level)]["spawn"])
             self.load_level(self.current_level)
+            self.game.pathfinding.reset_pathfinding(self.cur_map)
             self.inBase = False
         else:
             self.game.player.teleport(BASE_DATA["spawn"])
             self.load_base()
             self.current_level += 1
+            self.game.pathfinding.reset_pathfinding(self.cur_map)
             self.inBase = True
 
     def get_map(self):
@@ -1988,6 +2005,11 @@ class PathFinding:
         self.graph = {}
         self.get_graph()
 
+    def reset_pathfinding(self, newmap):
+        self.map = newmap
+        self.graph = {}
+        self.get_graph()
+
     #main function, returns the next square to move to, to optimally reach goal from start
     def get_path(self, start, goal):
         #creates collection of already visited squares
@@ -2299,6 +2321,8 @@ class lore:
     def __init__(self):
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
+        self.clock = pg.time.Clock()
+        self.delta_time = 1
         self.img_dict = self.make_dict()
         self.actually_run()
     
@@ -2313,13 +2337,10 @@ class lore:
         return out_dict
 
     def actually_run(self):
-        print(self.img_dict)
         
+        self.screen.blit(self.img_dict["villageattack"], self.img_dict["villageattack"].get_rect())
+        time.sleep(5)
         
-
-    
-
-
 
 ###GAME CODE###
 
@@ -2328,11 +2349,10 @@ class lore:
 class Game:
     #def vars, init func
     def __init__(self):
-        pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
         self.clock = pg.time.Clock()
         self.delta_time = 1
-
+        
         #event for animation i think
         self.global_trigger = False
         self.global_event = pg.USEREVENT + 0
@@ -2445,7 +2465,7 @@ class Game:
 #starts the game
 if __name__ == '__main__':
     lorething = lore()
-    lore.actually_run()
+    lorething.actually_run()
     
     game = Game()
     game.run()
