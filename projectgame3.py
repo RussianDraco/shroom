@@ -120,7 +120,7 @@ ENEMIES = {
             accuracy = 0.15
         )
     },
-     "zombie": {
+    "zombie": {
         "path" : 'resources/sprites/npc/zombie/0.png',
         "scale": 1.75,
         "shift" : 0.1,
@@ -130,8 +130,22 @@ ENEMIES = {
             speed = 0.03,
             size = 1.75,
             health = 200,
-            attack_dmg = 15,
+            attack_dmg = 11,
             accuracy = 0.33
+        )
+    },
+    "gemdemon": {
+        "path" : 'resources/sprites/npc/gemdemon/0.png',
+        "scale": 1.5,
+        "shift" : 2,
+        "animation_time" : 200,
+        "stats" : Stats(
+            attack_dist = 2.5,
+            speed = 0.05,
+            size = 1.5,
+            health = 200,
+            attack_dmg = 13,
+            accuracy = 0.35
         )
     }
 }
