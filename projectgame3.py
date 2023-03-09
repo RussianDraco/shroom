@@ -2314,35 +2314,41 @@ class StatBar:
 
         self.drawGasIcon()
 
-###CODE FOR LORE###
+###LORE###
 
-class lore:
-    
+class Lore:
     def __init__(self):
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
         self.clock = pg.time.Clock()
-        self.delta_time = 1
         self.img_dict = self.make_dict()
         self.actually_run()
     
     @staticmethod
-    def get_texture(path, res=(TEXTURE_SIZE, TEXTURE_SIZE)):
-        texture = pg.image.load(path).convert_alpha()
-        return pg.transform.scale(texture, res)
-    
+    def get_texture(path):
+        image = pg.image.load(path).convert_alpha()
+        width, height = image.get_width(), image.get_height()
+        if width >= height:
+            wh_ratio = width/height
+
+            width = WIDTH; height = HEIGHT / wh_ratio
+        else:
+            wh_ratio = height/width
+
+            height = HEIGHT; width = WIDTH / wh_ratio
+
+        return pg.transform.scale(image, (width, height))
     
     def make_dict(self):
-        out_dict = {pth.replace('.png', '') : self.get_texture('resources/lore/' + pth, (1000, 1000)) for pth in os.listdir('resources/lore/')}
-        return out_dict
+        out_ar = [self.get_texture('resources/lore/' + pth) for pth in os.listdir('resources/lore/')]
+        return out_ar
 
     def actually_run(self):
-        
-        self.screen.blit(self.img_dict["villageattack"], self.img_dict["villageattack"].get_rect())
-        time.sleep(5)
-        
-
-###LORE###
+        for obj in self.img_dict:
+            self.screen.fill('black')
+            self.screen.blit(obj, obj.get_rect())
+            pg.display.flip()
+            pg.time.delay(3000)
 
 
 ###GAME CODE###
@@ -2467,8 +2473,8 @@ class Game:
 
 #starts the game
 if __name__ == '__main__':
-    lorething = lore()
-    lorething.actually_run()
+    lore = Lore()
+    lore.actually_run()
     
     game = Game()
     game.run()
