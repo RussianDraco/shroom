@@ -136,13 +136,13 @@ ENEMIES = {
     },
     "gemdemon": {
         "path" : 'resources/sprites/npc/gemdemon/0.png',
-        "scale": 1.5,
-        "shift" : -0.3,
+        "scale": 1,
+        "shift" : -0.15,
         "animation_time" : 200,
         "stats" : Stats(
             attack_dist = 2.5,
             speed = 0.05,
-            size = 1.5,
+            size = 1,
             health = 200,
             attack_dmg = 7,
             accuracy = 0.35
@@ -164,13 +164,13 @@ ENEMIES = {
     },
     "satansnovel": {
         "path": 'resources/sprites/npc/satansnovel/0.png',
-        "scale": 1.5,
+        "scale": 1,
         "shift": -0.05,
         "animation_time": 120,
         "stats": Stats(
             attack_dist = 3,
             speed = 0.05,
-            size = 1.5,
+            size = 1,
             health = 150,
             attack_dmg = 9,
             accuracy = 0.4
@@ -193,7 +193,7 @@ class Player:
         self.shot = False
         self.health = PLAYER_MAX_HEALTH
         self.armor = PLAYER_MAX_ARMOR
-        self.ammo = 3
+        self.ammo = 999
         self.showWeapon = True
         self.time_prev = pg.time.get_ticks()
         self.canMove = True
@@ -718,7 +718,7 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            ["satansnovel", [8.5, 2.5]]
+            ["gemdemon", [8.5, 2.5]]
         ],
         "passive": [
             {
@@ -804,11 +804,13 @@ class Map:
         if self.inBase:
             self.game.player.teleport(LEVEL_DATA[str(self.current_level)]["spawn"])
             self.load_level(self.current_level)
+            self.game.pathfinding.reset_pathfinding(self.cur_map)
             self.inBase = False
         else:
             self.game.player.teleport(BASE_DATA["spawn"])
             self.load_base()
             self.current_level += 1
+            self.game.pathfinding.reset_pathfinding(self.cur_map)
             self.inBase = True
 
     def get_map(self):
@@ -1999,6 +2001,11 @@ class PathFinding:
         self.game = game
         self.map = game.map.cur_map
         self.ways = [-1, 0], [0, -1], [1, 0], [0, 1], [-1, -1], [1, -1], [1, 1], [-1, 1]
+        self.graph = {}
+        self.get_graph()
+
+    def reset_pathfinding(self, newmap):
+        self.map = newmap
         self.graph = {}
         self.get_graph()
 
