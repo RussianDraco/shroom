@@ -525,6 +525,7 @@ class QuestManager:
         if len(self.game.player.current_quests) < QUEST_LIMIT and not quest in self.game.player.current_quests:
             self.game.player.current_quests.append(quest)
             print("Started quest: " + quest.title)
+            self.game.object_renderer.create_popup("Started quest: " + quest.title)
         else:
             return False
 
@@ -543,6 +544,7 @@ class QuestManager:
                     self.special_quest_manager.bloatedgoblin()
 
         print("Finished quest: " + quest.title)
+        self.game.object_renderer.create_popup("Finished quest: " + quest.title)
         self.game.player.current_quests.remove(quest)
 
 
@@ -1270,19 +1272,30 @@ class ObjectRenderer:
 
         self.popup_list = []
 
-        self.doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 20)
+        self.doom_font = pg.font.Font(None, 20)
+
+        self.y_gap = 115 #pops are places every this ammount of y positions
 
     def create_popup(self, txt):
-        self.popup_list.append(Popup(self.game, txt))
+        x, y = self.next_popup_pos()
+        self.popup_list.append(Popup(self.game, txt, x, y))
 
     def next_popup_pos(self):
-        return (0, 0)
+        poss = []
+        for p in self.popup_list:
+            poss.append(p.pos)
+
+        for y in range(99):
+            if not (10, y * self.y_gap) in poss:
+                return (10, y * self.y_gap)
+            
+        return (10, 10)
 
     def popup_update(self):
-        pops = [p.update() for p in self.popup_list]
+        pops = {p : p.update() for p in self.popup_list}
 
         for p in pops:
-            self.screen.blit(p, next_popup_pos())
+            self.screen.blit(pops[p], p.pos)
 
     #function to draw background(sky) and to render all game objects
     def draw(self):
@@ -1463,12 +1476,14 @@ class Pickup(SpriteObject):
                 removed = True
 
             elif self.type == "item":
-                self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(self.subtype), 1 )
+                self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(self.subtype), self.number)
+                self.game.object_renderer.create_popup(f"Gained {str(self.number)} {self.game.inventory_system.get_item_by_id(self.subtype).name}'s")
                 removed = True
 
             elif self.type == "special":
                 if self.subtype == "stomachmedicine":
                     self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(1))
+                    self.game.object_renderer.create_popup("Gained stomach medicine")
                     removed = True
 
                 else:
@@ -2363,10 +2378,11 @@ class DisplayMenu:
 
 
 class Popup:
-    def __init__(self, game, msg):
+    def __init__(self, game, msg, x, y):
         self.game = game
         self.text = msg
         self.fade = 255
+        self.pos = x, y
         #need to scale the y-axis using the number of chars and some formula
         self.mysurface = pg.Surface((250, 100))
 
@@ -2560,8 +2576,6 @@ class Game:
 
     #draws stuff
     def draw(self):
-        self.object_renderer.create_popup("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.")
-
         self.object_renderer.draw()
         self.weapon.draw()
         self.gas_attack.draw()
