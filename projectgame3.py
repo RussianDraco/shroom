@@ -229,10 +229,15 @@ class Player:
         if type(x) == type(['a']):
             self.x = x[0]; self.y = x[1]
             return
+        
+        elif type(x) == type((1, 2)):
+            self.x, self.y = x
+            return
+
         self.x = x; self.y = y
 
     def portal_check(self):
-        if distance_formula(PORTAL_X, PORTAL_Y, self.x, self.y) < 0.75:
+        if distance_formula(PORTAL_X, PORTAL_Y, self.x, self.y) < 1.25:
             self.game.map.entered_portal()
             return True
         return False
@@ -367,6 +372,7 @@ class Player:
     #check if potential movement goes into wall
     def check_wall_collision(self, dx, dy):
         scale = PLAYER_SIZE_SCALE / self.game.delta_time
+
         if self.check_wall(int(self.x + dx * scale), int(self.y)):
             self.x += dx
         if self.check_wall(int(self.x), int(self.y + dy * scale)):
@@ -634,7 +640,7 @@ class MazeGenerator:
                     if ni<0 or nj<0 or ni>=w_ or nj>=h_:
                         continue
 
-                    if ar[ni][nj] == 2:
+                    if ar[ni][nj] == "p":
                         if finder:
                             return True, list(seen)
                         return True
@@ -658,14 +664,14 @@ class MazeGenerator:
 
         x2, y2 = 0, 0
 
-        ran = random.randint(0, (w-2)*(h-2)-1)
+        ran = randint(0, (w-2)*(h-2)-1)
         x2, y2 = ran % (w-2), math.floor(ran/(w-2))
-        maze[y2][x2] = 2
+        maze[y2][x2] = "p"
 
         e = 0
         while not isMazeValid(maze, w-2, h-2):
             while not maze[y2][x2] == 1:
-                ran = random.randint(0, (w-2)*(h-2)-1)
+                ran = randint(0, (w-2)*(h-2)-1)
                 x2, y2 = ran % (w-2), math.floor(ran/(w-2))
             maze[y2][x2] = 0
             e+=1
@@ -674,18 +680,18 @@ class MazeGenerator:
                 maze = resetMaze(maze)
                 x2, y2 = 0, 0
 
-                ran = random.randint(0, (w-2)*(h-2)-1)
+                ran = randint(0, (w-2)*(h-2)-1)
                 x2, y2 = ran % (w-2), math.floor(ran/(w-2))
-                maze[y2][x2] = 2
+                maze[y2][x2] = "p"
                 e = 0
 
         t, spawns = isMazeValid(maze, w-2, h-2, True)
 
-        spawn = spawns[random.randint(0, len(spawns)-1)]
+        spawn = spawns[randint(0, len(spawns)-1)]
 
-        y3, x3 = spawn
+        x3, y3 = spawn
 
-        maze[y3][x3] = "S"
+        spawn = x3 + 0.5, y3 + 0.5
 
         n = 0
         for r in maze:
@@ -707,7 +713,18 @@ class MazeGenerator:
             final_maze.append(r)
         final_maze.append(top_down_padding)
 
-        return final_maze
+        portal_loc = None
+
+        for y, r in enumerate(final_maze):
+            for x, v in enumerate(r):
+                if final_maze[y][x] == "p":
+                    portal_loc = x, y
+
+        for a in final_maze:
+            print(str(a))
+        print("Spawn: " + str(spawn))
+
+        return [final_maze, spawn, portal_loc]
 
 
 #define map
@@ -738,10 +755,6 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            #["gemdemon", [8.5, 2.5]],
-            #["tridemon", [8.5, 3.0]],
-            ["shadowslinger", [8.5, 3.5]],
-            #["satansnovel", [8.5, 4.0]],
         ],
         "passive": [
             {
@@ -821,9 +834,20 @@ class Map:
         self.current_level = 1
         self.inBase = True
 
+        self.generator = MazeGenerator()
+
         self.get_map()
 
+    def EXPIREMENTAL_GENERATION(self):
+        synth_map, spwn, portal = self.generator.generate_maze(20, 20)
+        self.game.player.teleport(spwn)
+        self.load_synthetic_map(synth_map, portal)
+        self.game.object_handler.clear_entities()
+        self.inBase = False
+
     def entered_portal(self):
+        #self.EXPIREMENTAL_GENERATION(); return
+
         if self.inBase:
             self.game.player.teleport(LEVEL_DATA[str(self.current_level)]["spawn"])
             self.load_level(self.current_level)
@@ -878,6 +902,14 @@ class Map:
             self.game.object_handler.load_level_spawns(lvlspawn)
         except AttributeError:
             self.need_to_load = lvlspawn
+
+    def load_synthetic_map(self, synthmap, portal): #for generated maps
+        lvlmap = synthmap
+
+        global PORTAL_X, PORTAL_Y
+        PORTAL_X, PORTAL_Y = portal
+
+        self.change_map(lvlmap)
 
     #debug thinkgy
     def draw(self):
