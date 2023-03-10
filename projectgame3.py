@@ -176,6 +176,20 @@ ENEMIES = {
             attack_dmg = 9,
             accuracy = 0.4
         )
+    },
+    "shadowslinger": {
+        "path": 'resources/sprites/npc/shadowslinger/0.png',
+        "scale": 1,
+        "shift": 0.05,
+        "animation_time": 130,
+        "stats": Stats(
+            attack_dist = 6,
+            speed = 0.05,
+            size = 1,
+            health = 100,
+            attack_dmg = 3,
+            accuracy = 0.3
+        )
     }
 }
 
@@ -298,20 +312,25 @@ class Player:
     def movement(self):
         if not self.canMove or self.inventoryOpen:
             return
+
         #mesure trigonometric numbers
         sin_a = math.sin(self.angle)
         cos_a = math.cos(self.angle)
 
         #define potential movement and set speed
         dx, dy = 0, 0
-        speed = PLAYER_SPEED * self.game.delta_time
+
+        #define dictionary with key statuses
+        keys = self.game.keys
+
+        if keys[pg.K_LSHIFT]:
+            speed = PLAYER_SPEED * self.game.delta_time * 1.25 
+        else:
+            speed = PLAYER_SPEED * self.game.delta_time
 
         #speed times trig nums
         speed_sin = speed * sin_a
         speed_cos = speed * cos_a
-
-        #define dictionary with key statuses
-        keys = self.game.keys
 
         #check key movements and add potential to potential movement on x and y axis
         if keys[pg.K_w]:
@@ -330,7 +349,7 @@ class Player:
         #check that potential movement dosent go into wall
         self.check_wall_collision(dx, dy)
 
-        #self.rel is used for rendering the sky, its not set to angle because angle has modulus on it which makes the sky choppy
+        #self.rel is used for rendering the sky
 
         #turning with arrows
         if keys[pg.K_LEFT]:
@@ -719,7 +738,10 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            ["gemdemon", [8.5, 2.5]]
+            #["gemdemon", [8.5, 2.5]],
+            #["tridemon", [8.5, 3.0]],
+            ["shadowslinger", [8.5, 3.5]],
+            #["satansnovel", [8.5, 4.0]],
         ],
         "passive": [
             {
@@ -2358,6 +2380,7 @@ class Lore:
 class Game:
     #def vars, init func
     def __init__(self):
+        pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
         self.clock = pg.time.Clock()
         self.delta_time = 1
@@ -2383,7 +2406,8 @@ class Game:
             pg.K_a: False,
             pg.K_d: False,
             pg.K_LEFT: False,
-            pg.K_RIGHT: False
+            pg.K_RIGHT: False,
+            pg.K_LSHIFT: False
         }
         self.new_game()
 
@@ -2473,8 +2497,8 @@ class Game:
 
 #starts the game
 if __name__ == '__main__':
-    lore = Lore()
-    lore.actually_run()
+    #lore = Lore()
+    #lore.actually_run()
     
     game = Game()
     game.run()
