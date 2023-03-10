@@ -183,7 +183,7 @@ ENEMIES = {
         "shift": 0.05,
         "animation_time": 130,
         "stats": Stats(
-            attack_dist = 6,
+            attack_dist = 7.5,
             speed = 0.05,
             size = 1,
             health = 100,
@@ -610,7 +610,7 @@ class MazeGenerator:
     def __init__(self):
         pass
 
-    def generate_maze(self, w, h):
+    def generate_maze(self, w, h, diff): #diff is difficulty, 0 is peaceful, the higher, the harder
         def resetMaze(ar):
             nI = 0
             nJ = 0
@@ -724,7 +724,36 @@ class MazeGenerator:
             print(str(a))
         print("Spawn: " + str(spawn))
 
-        return [final_maze, spawn, portal_loc]
+        empties = []
+
+        for y, r in enumerate(final_maze):
+            for x, v in enumerate(r):
+                if final_maze[y][x] == 0:
+                    empties.append([x, y])
+
+        if diff == 0:
+            return [final_maze, spawn, portal_loc, {}]
+
+        spawns = {"npc": []}
+
+        enemy_names = list(ENEMIES.keys())
+        good_items = ['ammo', 'health', 'armor']
+        good_item_shifts_scales = {'ammo': [1,0], 'health': [1,0], 'armor': [1,0]}
+        good_item_pth = {'ammo': 'resources/sprites/static/onionbag.png', 'health': '', 'armor': ''}
+        good_item_ranges = {'ammo': [1, 9], 'health': [5, 100], 'armor': [10, 85]}
+
+        real_diff = int(diff * uniform(0.1, 2))
+
+        for x in range(real_diff):
+            spawns["npc"].append([choice(enemy_names), choice(empties)])
+
+        for x in range(int(real_diff * 0.75)):
+            itm_type = choice(good_items)
+            spawns["pickups"].append([choice(empties), itm_type, good_item_pth[itm_type],
+                                       randint(good_item_ranges[itm_type][0], good_item_ranges[itm_type][1]), 
+                                               good_item_shifts_scales[itm_type][0], good_item_shifts_scales[itm_type][1], ""])
+
+        return [final_maze, spawn, portal_loc, spawns]
 
 
 #define map
@@ -755,6 +784,7 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
+            ["shadowslinger", [3.5, 2.5]]
         ],
         "passive": [
             {
@@ -796,7 +826,7 @@ BASE_DATA = {
         ],
         "pickups": [
             [[6.5, 6.5], 'item', 'resources/sprites/items/stomachmedicine.png', 1, 0.25, 1.6, 1],
-            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.25, 1.6, ""]
+            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.5, 1.6, ""]
         ]
     }
 }
@@ -1237,7 +1267,22 @@ class ObjectRenderer:
         self.portal_frames = [self.get_texture('resources/textures/portal/0.png'), self.get_texture('resources/textures/portal/1.png'), 
                               self.get_texture('resources/textures/portal/2.png'), self.get_texture('resources/textures/portal/3.png')]
         self.portal_frame_n = 0
-        
+
+        self.popup_list = []
+
+        self.doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 20)
+
+    def create_popup(self, txt):
+        self.popup_list.append(Popup(self.game, txt))
+
+    def next_popup_pos(self):
+        return (0, 0)
+
+    def popup_update(self):
+        pops = [p.update() for p in self.popup_list]
+
+        for p in pops:
+            self.screen.blit(p, next_popup_pos())
 
     #function to draw background(sky) and to render all game objects
     def draw(self):
@@ -2314,6 +2359,43 @@ class DisplayMenu:
             self.game.player.inventoryOpen = False
 
 
+###POPUP MESSAGE###
+
+
+class Popup:
+    def __init__(self, game, msg):
+        self.game = game
+        self.text = msg
+        self.fade = 255
+        #need to scale the y-axis using the number of chars and some formula
+        self.mysurface = pg.Surface((250, 100))
+
+        self.create()
+
+    def create(self):
+        pg.draw.rect(self.mysurface, 'white', (0, 0, 250, 100), border_radius=8)
+
+        y_cor = 10
+
+        for txt in self.game.text_box.wrap_text(self.text, 34):
+            self.mysurface.blit(self.game.object_renderer.doom_font.render(txt, False, (0, 0, 0)), (10, y_cor))
+            y_cor += 15
+
+        #self.mysurface.set_alpha(self.fade)
+    
+    def update(self):
+        self.fade -= 1
+        if self.fade <= 0:
+            self.self_destruct()
+        self.mysurface.set_alpha(self.fade)
+        return self.mysurface
+
+    def self_destruct(self):
+        self.game.object_renderer.popup_list.remove(self)
+        del self
+        return
+
+
 ###STATBAR###
 
 
@@ -2478,6 +2560,8 @@ class Game:
 
     #draws stuff
     def draw(self):
+        self.object_renderer.create_popup("Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.")
+
         self.object_renderer.draw()
         self.weapon.draw()
         self.gas_attack.draw()
@@ -2503,6 +2587,7 @@ class Game:
 
             elif event.type == self.next_char_event:
                 self.next_char_trigger = True
+                self.object_renderer.popup_update()
 
             elif event.type == self.portal_event:
                 self.object_renderer.next_portal_frame()
