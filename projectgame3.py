@@ -390,10 +390,21 @@ class Player:
 
     #debug thingy
     def draw(self):
-        #pg.draw.line(self.game.screen, 'yellow', (self.x * 100, self.y * 100),
-        #             (self.x * 100 + WIDTH * math.cos(self.angle),
-        #              self.y * 100 + WIDTH * math.sin(self.angle)), 2)
-        pg.draw.circle(self.game.screen, 'green', (100, 600), 8)
+        def triangle_calc(pos, ang, sideL): #mesures vertices of a triangle thats centered and points with an angle
+            return[(pos[0] + sideL * math.cos(ang), pos[1] + sideL * math.sin(ang)),
+                   (pos[0] + sideL * math.cos(ang + 2*math.pi/3), pos[1] + sideL * math.sin(ang + 2*math.pi/3)),
+                   (pos[0] + sideL * math.cos(ang + 4*math.pi/3), pos[1] + sideL * math.sin(ang + 4*math.pi/3))]
+
+        #pg.draw.circle(self.game.screen, 'green', (100, 600), 8)
+
+        points = triangle_calc([100, 600], self.angle, 10)
+
+        #elongates one angle to show direction easier
+        elon_poX, elon_poY = points[0]
+        elon_poX += math.cos(self.angle) * 5; elon_poY += math.sin(self.angle) * 5
+        points[0] = elon_poX, elon_poY
+
+        pg.draw.polygon(self.game.screen, (255, 20, 20), [points[0], points[1], points[2]])
 
     #function for looking around with mouse (not used)
     def mouse_control(self):
@@ -1798,7 +1809,7 @@ class Spawner: #(invisible)
 
 #weapon class, mostly manages visuals/weapon animations
 class Weapon(AnimatedSprite):
-    def __init__(self, game, path = 'resources/sprites/weapon/hand/0.png', scale = 1.75, animation_time = 75):
+    def __init__(self, game, path = 'resources/sprites/weapon/hand/0.png', scale = 1.75, animation_time = 50):
         super().__init__(game=game, path=path, scale=scale, animation_time=animation_time)
         self.images = deque(
             [pg.transform.smoothscale(img, (self.image.get_width() * scale, self.image.get_height() * scale)) for img in self.images])
