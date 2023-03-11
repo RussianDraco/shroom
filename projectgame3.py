@@ -2373,10 +2373,15 @@ class StatBar:
 class Lore:
     def __init__(self):
         pg.init()
+        print("1")
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
+        print("2")
         self.clock = pg.time.Clock()
+        print("3")
         self.img_dict = self.make_dict()
+        print("4")
         self.actually_run()
+        print("5")
     
     @staticmethod
     def get_texture(path):
@@ -2391,14 +2396,17 @@ class Lore:
 
             height = HEIGHT; width = WIDTH / wh_ratio
 
+        print("returned")
         return pg.transform.scale(image, (width, height))
     
     def make_dict(self):
         out_ar = [self.get_texture('resources/lore/' + pth) for pth in os.listdir('resources/lore/')]
+        print("made_dirs")
         return out_ar
 
     def actually_run(self):
         for obj in self.img_dict:
+            print("ran")
             self.screen.fill('black')
             self.screen.blit(obj, obj.get_rect())
             pg.display.flip()
@@ -2529,8 +2537,8 @@ class Game:
 
 #starts the game
 if __name__ == '__main__':
-    #lore = Lore()
-    #lore.actually_run()
+    lore = Lore()
+    lore.actually_run()
     
     game = Game()
     game.run()
