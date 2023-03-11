@@ -203,7 +203,7 @@ class Player:
     def __init__(self, game):
         self.game = game
         self.x, self.y = BASE_DATA["spawn"][0], BASE_DATA["spawn"][1]
-        self.angle = PLAYER_ANGLE
+        self.angle = 1e-10
         self.rel = pg.mouse.get_rel()[0]
         self.shot = False
         self.health = PLAYER_MAX_HEALTH
@@ -237,7 +237,7 @@ class Player:
         self.x = x; self.y = y
 
     def portal_check(self):
-        if distance_formula(PORTAL_X, PORTAL_Y, self.x, self.y) < 1.25:
+        if distance_formula(PORTAL_X, PORTAL_Y, self.x, self.y) < 0.99:
             self.game.map.entered_portal()
             return True
         return False
@@ -828,7 +828,7 @@ BASE_DATA = {
         ],
         "pickups": [
             [[6.5, 6.5], 'item', 'resources/sprites/items/stomachmedicine.png', 1, 0.25, 1.6, 1],
-            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.5, 1.6, ""]
+            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.5, 1, ""]
         ]
     }
 }
@@ -1274,28 +1274,29 @@ class ObjectRenderer:
 
         self.doom_font = pg.font.Font(None, 20)
 
-        self.y_gap = 115 #pops are places every this ammount of y positions
+        self.y_gap = 10 #gap between popups
 
     def create_popup(self, txt):
-        x, y = self.next_popup_pos()
-        self.popup_list.append(Popup(self.game, txt, x, y))
+        y = self.next_popup_pos()
+        self.popup_list.append(Popup(self.game, txt, y))
 
+    #basically i want to work on something else rn so ill make a makeshift sysmtem, popups append their "last position" and the next popup will be placed a certain amount under the previous message's "last position"
+    #the downside of this makeshift system is that if new messages are constantly being created without a moment of no messages, the messages will continually go further and further down because the poss array will always have a value preventing a reset to 0
     def next_popup_pos(self):
         poss = []
         for p in self.popup_list:
-            poss.append(p.pos)
+            poss.append(p.pos_y + p.surf_y)
 
-        for y in range(99):
-            if not (10, y * self.y_gap) in poss:
-                return (10, y * self.y_gap)
-            
-        return (10, 10)
+        if len(poss) == 0:
+            return 0
+        else:
+            return (poss[-1] + self.y_gap)
 
     def popup_update(self):
         pops = {p : p.update() for p in self.popup_list}
 
         for p in pops:
-            self.screen.blit(pops[p], p.pos)
+            self.screen.blit(pops[p], (10, p.pos_y))
 
     #function to draw background(sky) and to render all game objects
     def draw(self):
@@ -2378,18 +2379,20 @@ class DisplayMenu:
 
 
 class Popup:
-    def __init__(self, game, msg, x, y):
+    def __init__(self, game, msg, y):
         self.game = game
         self.text = msg
         self.fade = 255
-        self.pos = x, y
+        self.pos_y = y
         #need to scale the y-axis using the number of chars and some formula
-        self.mysurface = pg.Surface((250, 100))
+        self.surf_y = 15 + 15 * len(self.game.text_box.wrap_text(self.text, 34))#mesure the y coordinates
+
+        self.mysurface = pg.Surface((250, self.surf_y))
 
         self.create()
 
     def create(self):
-        pg.draw.rect(self.mysurface, 'white', (0, 0, 250, 100), border_radius=8)
+        pg.draw.rect(self.mysurface, 'white', (0, 0, 250, self.surf_y), border_radius=4)
 
         y_cor = 10
 
@@ -2403,7 +2406,7 @@ class Popup:
         self.fade -= 1
         if self.fade <= 0:
             self.self_destruct()
-        self.mysurface.set_alpha(self.fade)
+        #self.mysurface.set_alpha(self.fade) #IF YOU ENABLE THIS, this will enable popup messages to FADE OUT!!
         return self.mysurface
 
     def self_destruct(self):
