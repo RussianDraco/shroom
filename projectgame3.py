@@ -124,7 +124,7 @@ ENEMIES = {
     "zombie": {
         "path" : 'resources/sprites/npc/zombie/0.png',
         "scale": 1.75,
-        "shift" : 0.1,
+        "shift" : 0,
         "animation_time" : 200,
         "stats" : Stats(
             attack_dist = 2,
@@ -237,7 +237,7 @@ class Player:
         self.x = x; self.y = y
 
     def portal_check(self):
-        if distance_formula(PORTAL_X, PORTAL_Y, self.x, self.y) < 0.99:
+        if distance_formula(PORTAL_X, PORTAL_Y, self.x, self.y) < 1.25:
             self.game.map.entered_portal()
             return True
         return False
@@ -383,7 +383,7 @@ class Player:
         #pg.draw.line(self.game.screen, 'yellow', (self.x * 100, self.y * 100),
         #             (self.x * 100 + WIDTH * math.cos(self.angle),
         #              self.y * 100 + WIDTH * math.sin(self.angle)), 2)
-        pg.draw.circle(self.game.screen, 'green', (self.x * 100, self.y * 100), 15)
+        pg.draw.circle(self.game.screen, 'green', (100, 600), 8)
 
     #function for looking around with mouse (not used)
     def mouse_control(self):
@@ -655,6 +655,17 @@ class MazeGenerator:
                         queue.append((ni,nj))
             
             return False
+        
+        def filter_seen_set(mz, st):
+            ar = list(st)
+
+            outar = []
+
+            for (x, y) in ar:
+                if mz[y][x] == 0:
+                    outar.append((x+1.5, y+1.5))
+
+            return outar
 
         maze = []
 
@@ -687,13 +698,12 @@ class MazeGenerator:
                 maze[y2][x2] = "p"
                 e = 0
 
-        t, spawns = isMazeValid(maze, w-2, h-2, True)
+        t, s = isMazeValid(maze, w-2, h-2, finder = True)
+        empties = filter_seen_set(maze, s)
 
-        spawn = spawns[randint(0, len(spawns)-1)]
+        spawn = choice(empties)
 
-        x3, y3 = spawn
-
-        spawn = x3 + 0.5, y3 + 0.5
+        empties.remove(spawn)
 
         n = 0
         for r in maze:
@@ -722,26 +732,15 @@ class MazeGenerator:
                 if final_maze[y][x] == "p":
                     portal_loc = x, y
 
-        for a in final_maze:
-            print(str(a))
-        print("Spawn: " + str(spawn))
-
-        empties = []
-
-        for y, r in enumerate(final_maze):
-            for x, v in enumerate(r):
-                if final_maze[y][x] == 0:
-                    empties.append([x, y])
-
         if diff == 0:
             return [final_maze, spawn, portal_loc, {}]
 
-        spawns = {"npc": []}
+        spawns = {"npc": [], "pickups": []}
 
         enemy_names = list(ENEMIES.keys())
         good_items = ['ammo', 'health', 'armor']
-        good_item_shifts_scales = {'ammo': [1,0], 'health': [1,0], 'armor': [1,0]}
-        good_item_pth = {'ammo': 'resources/sprites/static/onionbag.png', 'health': '', 'armor': ''}
+        good_item_shifts_scales = {'ammo': [0.5, 0.5], 'health': [1, 0], 'armor': [0.8, 0]}
+        good_item_pth = {'ammo': 'resources/sprites/static/onionbag.png', 'health': 'resources/sprites/static/health.png', 'armor': 'resources/sprites/static/armor.png'}
         good_item_ranges = {'ammo': [1, 9], 'health': [5, 100], 'armor': [10, 85]}
 
         real_diff = int(diff * uniform(0.1, 2))
@@ -754,6 +753,10 @@ class MazeGenerator:
             spawns["pickups"].append([choice(empties), itm_type, good_item_pth[itm_type],
                                        randint(good_item_ranges[itm_type][0], good_item_ranges[itm_type][1]), 
                                                good_item_shifts_scales[itm_type][0], good_item_shifts_scales[itm_type][1], ""])
+
+        for a in final_maze:
+            print(str(a))
+        print(str(spawn))
 
         return [final_maze, spawn, portal_loc, spawns]
 
@@ -859,6 +862,10 @@ class Map:
         self.need_to_load = None
         self.load_base()
 
+        #minimap offsets
+        self.mmxoffset = 0
+        self.mmyoffset = 0
+
         self.cur_map = cur_map
         self.world_map = {}
         self.rows = len(self.cur_map)
@@ -871,14 +878,14 @@ class Map:
         self.get_map()
 
     def EXPIREMENTAL_GENERATION(self):
-        synth_map, spwn, portal = self.generator.generate_maze(20, 20)
+        synth_map, spwn, portal, spawn_dict = self.generator.generate_maze(30, 30, 20)
         self.game.player.teleport(spwn)
-        self.load_synthetic_map(synth_map, portal)
-        self.game.object_handler.clear_entities()
+        self.load_synthetic_map(synth_map, portal, spawn_dict)
+        self.game.pathfinding.reset_pathfinding(self.cur_map)
         self.inBase = False
 
     def entered_portal(self):
-        #self.EXPIREMENTAL_GENERATION(); return
+        self.EXPIREMENTAL_GENERATION(); return
 
         if self.inBase:
             self.game.player.teleport(LEVEL_DATA[str(self.current_level)]["spawn"])
@@ -935,18 +942,23 @@ class Map:
         except AttributeError:
             self.need_to_load = lvlspawn
 
-    def load_synthetic_map(self, synthmap, portal): #for generated maps
+    def load_synthetic_map(self, synthmap, portal, spawndict): #for generated maps
         lvlmap = synthmap
 
         global PORTAL_X, PORTAL_Y
         PORTAL_X, PORTAL_Y = portal
 
         self.change_map(lvlmap)
+        try:
+            self.game.object_handler.load_level_spawns(spawndict)
+        except AttributeError:
+            self.need_to_load = spawndict
 
     #debug thinkgy
     def draw(self):
-        [pg.draw.rect(self.game.screen, 'darkgray', (pos[0] * 100, pos[1] * 100, 100, 100), 2)
-         for pos in self.world_map]
+        self.mmxoffset = -self.game.player.x; self.mmyoffset = -self.game.player.y
+
+        [pg.draw.rect(self.game.screen, 'darkgray', (pos[0] * 20 + self.mmxoffset * 20 + 100, pos[1] * 20 + self.mmyoffset * 20 + 600, 20, 20), 2) for pos in self.world_map]
         
 
 ###RAYCASTING###
@@ -2586,8 +2598,8 @@ class Game:
         self.display_menu.draw()
 
         #debugin thingy
-        #self.map.draw()
-        #self.player.draw()
+        self.map.draw()
+        self.player.draw()
 
     #checks pygame events for key pressed and quits
     def check_events(self):
