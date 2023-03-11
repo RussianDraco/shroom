@@ -1780,7 +1780,7 @@ class Weapon(AnimatedSprite):
         super().__init__(game=game, path=path, scale=scale, animation_time=animation_time)
         self.images = deque(
             [pg.transform.smoothscale(img, (self.image.get_width() * scale, self.image.get_height() * scale)) for img in self.images])
-        self.weapon_pos = (HALF_WIDTH - self.images[0].get_width() // 2, HEIGHT - self.images[0].get_height())
+        self.weapon_pos = (HALF_WIDTH - self.images[0].get_width() // 2 + 125, HEIGHT - self.images[0].get_height())
         self.reloading = False
         self.num_images = len(self.images)
         self.frame_counter = 0
@@ -2443,6 +2443,22 @@ class Popup:
         return
 
 
+###crossbar###
+class crossbar:
+    def __init__(self, game):
+        self.game = game
+        self.screen = game.screen
+        self.line_col = (200, 200, 200)  # white
+        self.line_length = 50
+        self.line_length = self.line_length//2
+        
+    def draw(self):
+        
+        
+        pg.draw.line(self.screen, self.line_col, (HALF_WIDTH-self.line_length, HALF_HEIGHT), (HALF_WIDTH + self.line_length, HALF_HEIGHT), width=5) #left to right
+        pg.draw.line(self.screen, self.line_col, (HALF_WIDTH, HALF_HEIGHT-self.line_length), (HALF_WIDTH, HALF_HEIGHT+self.line_length), width=5) #up to down
+
+
 ###STATBAR###
 
 
@@ -2502,10 +2518,15 @@ class StatBar:
 class Lore:
     def __init__(self):
         pg.init()
+        print("1")
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
+        print("2")
         self.clock = pg.time.Clock()
+        print("3")
         self.img_dict = self.make_dict()
+        print("4")
         self.actually_run()
+        print("5")
     
     @staticmethod
     def get_texture(path):
@@ -2520,14 +2541,17 @@ class Lore:
 
             height = HEIGHT; width = WIDTH / wh_ratio
 
+        print("returned")
         return pg.transform.scale(image, (width, height))
     
     def make_dict(self):
         out_ar = [self.get_texture('resources/lore/' + pth) for pth in os.listdir('resources/lore/')]
+        print("made_dirs")
         return out_ar
 
     def actually_run(self):
         for obj in self.img_dict:
+            print("ran")
             self.screen.fill('black')
             self.screen.blit(obj, obj.get_rect())
             pg.display.flip()
@@ -2589,6 +2613,7 @@ class Game:
         self.text_box = TextBox(self, 200, HALF_HEIGHT + HALF_HEIGHT // 2, HALF_WIDTH + HALF_WIDTH // 2, HALF_HEIGHT // 2)
         self.quest_manager = QuestManager(self)
         self.display_menu = DisplayMenu(self)
+        self.crossbar = crossbar(self)
 
     #updates everything that needs updating
     def update(self):
@@ -2612,6 +2637,7 @@ class Game:
         self.gas_attack.draw()
         self.statbar.draw()
         self.display_menu.draw()
+        self.crossbar.draw()
 
         #debugin thingy
         #self.map.draw()
