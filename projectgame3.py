@@ -124,7 +124,7 @@ ENEMIES = {
     "zombie": {
         "path" : 'resources/sprites/npc/zombie/0.png',
         "scale": 1.75,
-        "shift" : 0.1,
+        "shift" : 0,
         "animation_time" : 200,
         "stats" : Stats(
             attack_dist = 2,
@@ -183,7 +183,7 @@ ENEMIES = {
         "shift": 0.05,
         "animation_time": 130,
         "stats": Stats(
-            attack_dist = 6,
+            attack_dist = 7.5,
             speed = 0.05,
             size = 1,
             health = 100,
@@ -203,7 +203,7 @@ class Player:
     def __init__(self, game):
         self.game = game
         self.x, self.y = BASE_DATA["spawn"][0], BASE_DATA["spawn"][1]
-        self.angle = PLAYER_ANGLE
+        self.angle = 1e-10
         self.rel = pg.mouse.get_rel()[0]
         self.shot = False
         self.health = PLAYER_MAX_HEALTH
@@ -383,7 +383,7 @@ class Player:
         #pg.draw.line(self.game.screen, 'yellow', (self.x * 100, self.y * 100),
         #             (self.x * 100 + WIDTH * math.cos(self.angle),
         #              self.y * 100 + WIDTH * math.sin(self.angle)), 2)
-        pg.draw.circle(self.game.screen, 'green', (self.x * 100, self.y * 100), 15)
+        pg.draw.circle(self.game.screen, 'green', (100, 600), 8)
 
     #function for looking around with mouse (not used)
     def mouse_control(self):
@@ -525,6 +525,7 @@ class QuestManager:
         if len(self.game.player.current_quests) < QUEST_LIMIT and not quest in self.game.player.current_quests:
             self.game.player.current_quests.append(quest)
             print("Started quest: " + quest.title)
+            self.game.object_renderer.create_popup("Started quest: " + quest.title)
         else:
             return False
 
@@ -543,6 +544,7 @@ class QuestManager:
                     self.special_quest_manager.bloatedgoblin()
 
         print("Finished quest: " + quest.title)
+        self.game.object_renderer.create_popup("Finished quest: " + quest.title)
         self.game.player.current_quests.remove(quest)
 
 
@@ -610,7 +612,7 @@ class MazeGenerator:
     def __init__(self):
         pass
 
-    def generate_maze(self, w, h):
+    def generate_maze(self, w, h, diff): #diff is difficulty, 0 is peaceful, the higher, the harder
         def resetMaze(ar):
             nI = 0
             nJ = 0
@@ -653,6 +655,17 @@ class MazeGenerator:
                         queue.append((ni,nj))
             
             return False
+        
+        def filter_seen_set(mz, st):
+            ar = list(st)
+
+            outar = []
+
+            for (x, y) in ar:
+                if mz[y][x] == 0:
+                    outar.append((x+1.5, y+1.5))
+
+            return outar
 
         maze = []
 
@@ -685,13 +698,12 @@ class MazeGenerator:
                 maze[y2][x2] = "p"
                 e = 0
 
-        t, spawns = isMazeValid(maze, w-2, h-2, True)
+        t, s = isMazeValid(maze, w-2, h-2, finder = True)
+        empties = filter_seen_set(maze, s)
 
-        spawn = spawns[randint(0, len(spawns)-1)]
+        spawn = choice(empties)
 
-        x3, y3 = spawn
-
-        spawn = x3 + 0.5, y3 + 0.5
+        empties.remove(spawn)
 
         n = 0
         for r in maze:
@@ -720,11 +732,33 @@ class MazeGenerator:
                 if final_maze[y][x] == "p":
                     portal_loc = x, y
 
+        if diff == 0:
+            return [final_maze, spawn, portal_loc, {}]
+
+        spawns = {"npc": [], "pickups": []}
+
+        enemy_names = list(ENEMIES.keys())
+        good_items = ['ammo', 'health', 'armor']
+        good_item_shifts_scales = {'ammo': [0.5, 0.5], 'health': [1, 0], 'armor': [0.8, 0]}
+        good_item_pth = {'ammo': 'resources/sprites/static/onionbag.png', 'health': 'resources/sprites/static/health.png', 'armor': 'resources/sprites/static/armor.png'}
+        good_item_ranges = {'ammo': [1, 9], 'health': [5, 100], 'armor': [10, 85]}
+
+        real_diff = int(diff * uniform(0.1, 2))
+
+        for x in range(real_diff):
+            spawns["npc"].append([choice(enemy_names), choice(empties)])
+
+        for x in range(int(real_diff * 0.75)):
+            itm_type = choice(good_items)
+            spawns["pickups"].append([choice(empties), itm_type, good_item_pth[itm_type],
+                                       randint(good_item_ranges[itm_type][0], good_item_ranges[itm_type][1]), 
+                                               good_item_shifts_scales[itm_type][0], good_item_shifts_scales[itm_type][1], ""])
+
         for a in final_maze:
             print(str(a))
-        print("Spawn: " + str(spawn))
+        print(str(spawn))
 
-        return [final_maze, spawn, portal_loc]
+        return [final_maze, spawn, portal_loc, spawns]
 
 
 #define map
@@ -755,6 +789,7 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
+            ["shadowslinger", [3.5, 2.5]]
         ],
         "passive": [
             {
@@ -796,7 +831,7 @@ BASE_DATA = {
         ],
         "pickups": [
             [[6.5, 6.5], 'item', 'resources/sprites/items/stomachmedicine.png', 1, 0.25, 1.6, 1],
-            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.25, 1.6, ""]
+            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.5, 1, ""]
         ]
     }
 }
@@ -827,6 +862,10 @@ class Map:
         self.need_to_load = None
         self.load_base()
 
+        #minimap offsets
+        self.mmxoffset = 0
+        self.mmyoffset = 0
+
         self.cur_map = cur_map
         self.world_map = {}
         self.rows = len(self.cur_map)
@@ -839,14 +878,14 @@ class Map:
         self.get_map()
 
     def EXPIREMENTAL_GENERATION(self):
-        synth_map, spwn, portal = self.generator.generate_maze(20, 20)
+        synth_map, spwn, portal, spawn_dict = self.generator.generate_maze(30, 30, 20)
         self.game.player.teleport(spwn)
-        self.load_synthetic_map(synth_map, portal)
-        self.game.object_handler.clear_entities()
+        self.load_synthetic_map(synth_map, portal, spawn_dict)
+        self.game.pathfinding.reset_pathfinding(self.cur_map)
         self.inBase = False
 
     def entered_portal(self):
-        #self.EXPIREMENTAL_GENERATION(); return
+        self.EXPIREMENTAL_GENERATION(); return
 
         if self.inBase:
             self.game.player.teleport(LEVEL_DATA[str(self.current_level)]["spawn"])
@@ -903,18 +942,23 @@ class Map:
         except AttributeError:
             self.need_to_load = lvlspawn
 
-    def load_synthetic_map(self, synthmap, portal): #for generated maps
+    def load_synthetic_map(self, synthmap, portal, spawndict): #for generated maps
         lvlmap = synthmap
 
         global PORTAL_X, PORTAL_Y
         PORTAL_X, PORTAL_Y = portal
 
         self.change_map(lvlmap)
+        try:
+            self.game.object_handler.load_level_spawns(spawndict)
+        except AttributeError:
+            self.need_to_load = spawndict
 
     #debug thinkgy
     def draw(self):
-        [pg.draw.rect(self.game.screen, 'darkgray', (pos[0] * 100, pos[1] * 100, 100, 100), 2)
-         for pos in self.world_map]
+        self.mmxoffset = -self.game.player.x; self.mmyoffset = -self.game.player.y
+
+        [pg.draw.rect(self.game.screen, 'darkgray', (pos[0] * 20 + self.mmxoffset * 20 + 100, pos[1] * 20 + self.mmyoffset * 20 + 600, 20, 20), 2) for pos in self.world_map]
         
 
 ###RAYCASTING###
@@ -1237,7 +1281,34 @@ class ObjectRenderer:
         self.portal_frames = [self.get_texture('resources/textures/portal/0.png'), self.get_texture('resources/textures/portal/1.png'), 
                               self.get_texture('resources/textures/portal/2.png'), self.get_texture('resources/textures/portal/3.png')]
         self.portal_frame_n = 0
-        
+
+        self.popup_list = []
+
+        self.doom_font = pg.font.Font(None, 20)
+
+        self.y_gap = 10 #gap between popups
+
+    def create_popup(self, txt):
+        y = self.next_popup_pos()
+        self.popup_list.append(Popup(self.game, txt, y))
+
+    #basically i want to work on something else rn so ill make a makeshift sysmtem, popups append their "last position" and the next popup will be placed a certain amount under the previous message's "last position"
+    #the downside of this makeshift system is that if new messages are constantly being created without a moment of no messages, the messages will continually go further and further down because the poss array will always have a value preventing a reset to 0
+    def next_popup_pos(self):
+        poss = []
+        for p in self.popup_list:
+            poss.append(p.pos_y + p.surf_y)
+
+        if len(poss) == 0:
+            return 0
+        else:
+            return (poss[-1] + self.y_gap)
+
+    def popup_update(self):
+        pops = {p : p.update() for p in self.popup_list}
+
+        for p in pops:
+            self.screen.blit(pops[p], (10, p.pos_y))
 
     #function to draw background(sky) and to render all game objects
     def draw(self):
@@ -1418,12 +1489,14 @@ class Pickup(SpriteObject):
                 removed = True
 
             elif self.type == "item":
-                self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(self.subtype), 1 )
+                self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(self.subtype), self.number)
+                self.game.object_renderer.create_popup(f"Gained {str(self.number)} {self.game.inventory_system.get_item_by_id(self.subtype).name}'s")
                 removed = True
 
             elif self.type == "special":
                 if self.subtype == "stomachmedicine":
                     self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(1))
+                    self.game.object_renderer.create_popup("Gained stomach medicine")
                     removed = True
 
                 else:
@@ -2314,6 +2387,46 @@ class DisplayMenu:
             self.game.player.inventoryOpen = False
 
 
+###POPUP MESSAGE###
+
+
+class Popup:
+    def __init__(self, game, msg, y):
+        self.game = game
+        self.text = msg
+        self.fade = 255
+        self.pos_y = y
+        #need to scale the y-axis using the number of chars and some formula
+        self.surf_y = 15 + 15 * len(self.game.text_box.wrap_text(self.text, 34))#mesure the y coordinates
+
+        self.mysurface = pg.Surface((250, self.surf_y))
+
+        self.create()
+
+    def create(self):
+        pg.draw.rect(self.mysurface, 'white', (0, 0, 250, self.surf_y), border_radius=4)
+
+        y_cor = 10
+
+        for txt in self.game.text_box.wrap_text(self.text, 34):
+            self.mysurface.blit(self.game.object_renderer.doom_font.render(txt, False, (0, 0, 0)), (10, y_cor))
+            y_cor += 15
+
+        #self.mysurface.set_alpha(self.fade)
+    
+    def update(self):
+        self.fade -= 1
+        if self.fade <= 0:
+            self.self_destruct()
+        #self.mysurface.set_alpha(self.fade) #IF YOU ENABLE THIS, this will enable popup messages to FADE OUT!!
+        return self.mysurface
+
+    def self_destruct(self):
+        self.game.object_renderer.popup_list.remove(self)
+        del self
+        return
+
+
 ###STATBAR###
 
 
@@ -2493,8 +2606,8 @@ class Game:
         self.display_menu.draw()
 
         #debugin thingy
-        #self.map.draw()
-        #self.player.draw()
+        self.map.draw()
+        self.player.draw()
 
     #checks pygame events for key pressed and quits
     def check_events(self):
@@ -2511,6 +2624,7 @@ class Game:
 
             elif event.type == self.next_char_event:
                 self.next_char_trigger = True
+                self.object_renderer.popup_update()
 
             elif event.type == self.portal_event:
                 self.object_renderer.next_portal_frame()
