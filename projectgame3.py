@@ -54,7 +54,7 @@ PLAYER_SPEED = 0.004
 PLAYER_ROT_SPEED = 0.002
 PLAYER_SIZE_SCALE = 60
 PLAYER_MAX_HEALTH = 100
-PLAYER_MAX_ARMOR = 0
+PLAYER_MAX_ARMOR = 100
 RECOVERY_DELAY = 9999
 
 QUEST_LIMIT = 3
@@ -117,8 +117,8 @@ ENEMIES = {
             speed = 0.04,
             size = 1,
             health = 150,
-            attack_dmg = 5,
-            accuracy = 0.15
+            attack_dmg = 15,
+            accuracy = 0.6
         )
     },
     "zombie": {
@@ -131,8 +131,8 @@ ENEMIES = {
             speed = 0.03,
             size = 1.75,
             health = 200,
-            attack_dmg = 6,
-            accuracy = 0.33
+            attack_dmg = 20,
+            accuracy = 0.5
         )
     },
     "gemdemon": {
@@ -145,8 +145,8 @@ ENEMIES = {
             speed = 0.05,
             size = 1,
             health = 200,
-            attack_dmg = 7,
-            accuracy = 0.35
+            attack_dmg = 18,
+            accuracy = 0.6
         )
     },
     "tridemon": {
@@ -159,8 +159,8 @@ ENEMIES = {
             speed = 0.07,
             size = 2,
             health = 200,
-            attack_dmg = 6,
-            accuracy = 0.4
+            attack_dmg = 14,
+            accuracy = 0.7
         )
     },
     "satansnovel": {
@@ -173,8 +173,8 @@ ENEMIES = {
             speed = 0.05,
             size = 1,
             health = 150,
-            attack_dmg = 9,
-            accuracy = 0.4
+            attack_dmg = 12,
+            accuracy = 0.8
         )
     },
     "shadowslinger": {
@@ -187,8 +187,8 @@ ENEMIES = {
             speed = 0.05,
             size = 1,
             health = 100,
-            attack_dmg = 3,
-            accuracy = 0.3
+            attack_dmg = 13,
+            accuracy = 0.9
         )
     }
 }
@@ -203,7 +203,7 @@ class Player:
     def __init__(self, game):
         self.game = game
         self.x, self.y = BASE_DATA["spawn"][0], BASE_DATA["spawn"][1]
-        self.angle = 1e-10
+        self.angle = 1e-6
         self.rel = pg.mouse.get_rel()[0]
         self.shot = False
         self.health = PLAYER_MAX_HEALTH
@@ -261,6 +261,14 @@ class Player:
             self.health += num
             if self.health > PLAYER_MAX_HEALTH:
                 self.health = PLAYER_MAX_HEALTH
+            return True
+        return False
+    
+    def recover_armor(self, num):
+        if self.armor < PLAYER_MAX_ARMOR:
+            self.armor += num
+            if self.armor > PLAYER_MAX_ARMOR:
+                self.armor = PLAYER_MAX_ARMOR
             return True
         return False
 
@@ -739,7 +747,7 @@ class MazeGenerator:
 
         enemy_names = list(ENEMIES.keys())
         good_items = ['ammo', 'health', 'armor']
-        good_item_shifts_scales = {'ammo': [0.5, 0.5], 'health': [1, 0], 'armor': [0.8, 0]}
+        good_item_shifts_scales = {'ammo': [0.5, 0.5], 'health': [1, 0.4], 'armor': [0.8, 0.4]}
         good_item_pth = {'ammo': 'resources/sprites/static/onionbag.png', 'health': 'resources/sprites/static/health.png', 'armor': 'resources/sprites/static/armor.png'}
         good_item_ranges = {'ammo': [1, 9], 'health': [5, 100], 'armor': [10, 85]}
 
@@ -1478,7 +1486,8 @@ class Pickup(SpriteObject):
                 pass
 
             elif self.type == "armor":
-                pass
+                if self.game.player.recover_armor(self.number):
+                    removed = True
 
             elif self.type == "health":
                 if self.game.player.heal(self.number):
@@ -1908,6 +1917,8 @@ class NPC(AnimatedSprite):
         self.pain_images = self.get_images(self.path + '/pain')
         self.walk_images = self.get_images(self.path + '/walk')
 
+        self.last_atk_frame = self.attack_images[-1]
+
         #defines this npc's constants
         if stats == None:
             self.attack_dist = 2
@@ -2019,6 +2030,12 @@ class NPC(AnimatedSprite):
             self.alive = False
             #self.game.sound.npc_death.play()
 
+    def attack_animate(self):
+        self.animate(self.attack_images)
+
+        if self.image == self.last_atk_frame:
+            self.attack()
+
     #main logic runner for npc
     def run_logic(self):
         if self.alive:
@@ -2034,8 +2051,7 @@ class NPC(AnimatedSprite):
 
                 #if close enough attack, if not walk
                 if self.dist < self.attack_dist:
-                    self.animate(self.attack_images)
-                    self.attack()
+                    self.attack_animate()
                 else:
                     self.animate(self.walk_images)
                     self.movement()
@@ -2598,8 +2614,8 @@ class Game:
         self.display_menu.draw()
 
         #debugin thingy
-        self.map.draw()
-        self.player.draw()
+        #self.map.draw()
+        #self.player.draw()
 
     #checks pygame events for key pressed and quits
     def check_events(self):
