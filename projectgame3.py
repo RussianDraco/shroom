@@ -36,6 +36,8 @@ def get_json(path):
 
 ###SETTINGS###
 
+RANDOM_GENERATION = True #if true, portals will generate random mazes, else, player made mazes will be used(from levels.json)
+
 # screen settings
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
 
@@ -667,6 +669,11 @@ class MazeGenerator:
         def filter_seen_set(mz, st):
             ar = list(st)
 
+            n = 0
+            for (y, x) in ar:
+                ar[n] = (x, y)
+                n+=1
+
             outar = []
 
             for (x, y) in ar:
@@ -710,6 +717,15 @@ class MazeGenerator:
         empties = filter_seen_set(maze, s)
 
         spawn = choice(empties)
+
+        x,y = spawn
+        if not maze[int(y-1.5)][int(x-1.5)] == 0:
+            while not maze[int(y-1.5)][int(x-1.5)] == 0:
+                spawn = choice(empties)
+                print(str(spawn))
+                x,y = spawn
+
+        print(str(maze[int(y-1.5)][int(x-1.5)]))
 
         empties.remove(spawn)
 
@@ -761,10 +777,6 @@ class MazeGenerator:
             spawns["pickups"].append([choice(empties), itm_type, good_item_pth[itm_type],
                                        randint(good_item_ranges[itm_type][0], good_item_ranges[itm_type][1]), 
                                                good_item_shifts_scales[itm_type][0], good_item_shifts_scales[itm_type][1], ""])
-
-        for a in final_maze:
-            print(str(a))
-        print(str(spawn))
 
         return [final_maze, spawn, portal_loc, spawns]
 
@@ -839,7 +851,7 @@ BASE_DATA = {
         ],
         "pickups": [
             [[6.5, 6.5], 'item', 'resources/sprites/items/stomachmedicine.png', 1, 0.25, 1.6, 1],
-            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.5, 1, ""]
+            [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.5, 0.7, ""]
         ]
     }
 }
@@ -873,6 +885,7 @@ class Map:
         #minimap offsets
         self.mmxoffset = 0
         self.mmyoffset = 0
+        self.mmsurface = pg.Surface((100, 100))
 
         self.cur_map = cur_map
         self.world_map = {}
@@ -887,13 +900,15 @@ class Map:
 
     def EXPIREMENTAL_GENERATION(self):
         synth_map, spwn, portal, spawn_dict = self.generator.generate_maze(30, 30, 20)
+        self.game.object_handler.clear_entities(); self.game.object_handler.clear_entities()
         self.game.player.teleport(spwn)
         self.load_synthetic_map(synth_map, portal, spawn_dict)
         self.game.pathfinding.reset_pathfinding(self.cur_map)
         self.inBase = False
 
     def entered_portal(self):
-        self.EXPIREMENTAL_GENERATION(); return
+        if RANDOM_GENERATION:
+            self.EXPIREMENTAL_GENERATION(); return
 
         if self.inBase:
             self.game.player.teleport(LEVEL_DATA[str(self.current_level)]["spawn"])
@@ -964,9 +979,13 @@ class Map:
 
     #debug thinkgy
     def draw(self):
+        self.mmsurface.fill('black')
+
         self.mmxoffset = -self.game.player.x; self.mmyoffset = -self.game.player.y
 
-        [pg.draw.rect(self.game.screen, 'darkgray', (pos[0] * 20 + self.mmxoffset * 20 + 100, pos[1] * 20 + self.mmyoffset * 20 + 600, 20, 20), 2) for pos in self.world_map]
+        [pg.draw.rect(self.mmsurface, 'darkgray', (pos[0] * 20 + self.mmxoffset * 20 + 50, pos[1] * 20 + self.mmyoffset * 20 + 50, 20, 20), 2) for pos in self.world_map]
+
+        self.game.screen.blit(self.mmsurface, (50, 550))
         
 
 ###RAYCASTING###
@@ -1487,14 +1506,17 @@ class Pickup(SpriteObject):
 
             elif self.type == "armor":
                 if self.game.player.recover_armor(self.number):
+                    self.game.sound_player.play_sound("armor", loop=False)
                     removed = True
 
             elif self.type == "health":
                 if self.game.player.heal(self.number):
+                    self.game.sound_player.play_sound("heal", loop=False)
                     removed = True
 
             elif self.type == "ammo":
                 self.game.player.ammo += self.number
+                self.game.sound_player.play_sound("reload", loop=False)
                 removed = True
 
             elif self.type == "item":
@@ -1882,6 +1904,10 @@ class SoundPlayer:
     def __init__(self):
         pg.mixer.init()
         self.sounds = {}
+
+        self.load_sound("armor", "resources/sound/armor.wav")
+        self.load_sound("heal", "resources/sound/chew.wav")
+        self.load_sound("reload", "resources/sound/reload.wav")
 
     def load_sound(self, sound_name, sound_file_path):
         self.sounds[sound_name] = pg.mixer.Sound(sound_file_path)
@@ -2444,19 +2470,18 @@ class Popup:
 
 
 ###crossbar###
-class crossbar:
+class Crossbar:
     def __init__(self, game):
         self.game = game
         self.screen = game.screen
         self.line_col = (200, 200, 200)  # white
         self.line_length = 50
         self.line_length = self.line_length//2
+        self.line_width = 3
         
     def draw(self):
-        
-        
-        pg.draw.line(self.screen, self.line_col, (HALF_WIDTH-self.line_length, HALF_HEIGHT), (HALF_WIDTH + self.line_length, HALF_HEIGHT), width=5) #left to right
-        pg.draw.line(self.screen, self.line_col, (HALF_WIDTH, HALF_HEIGHT-self.line_length), (HALF_WIDTH, HALF_HEIGHT+self.line_length), width=5) #up to down
+        pg.draw.line(self.screen, self.line_col, (HALF_WIDTH-self.line_length, HALF_HEIGHT), (HALF_WIDTH + self.line_length, HALF_HEIGHT), self.line_width) #left to right
+        pg.draw.line(self.screen, self.line_col, (HALF_WIDTH, HALF_HEIGHT-self.line_length), (HALF_WIDTH, HALF_HEIGHT+self.line_length), self.line_width) #up to down
 
 
 ###STATBAR###
@@ -2613,7 +2638,7 @@ class Game:
         self.text_box = TextBox(self, 200, HALF_HEIGHT + HALF_HEIGHT // 2, HALF_WIDTH + HALF_WIDTH // 2, HALF_HEIGHT // 2)
         self.quest_manager = QuestManager(self)
         self.display_menu = DisplayMenu(self)
-        self.crossbar = crossbar(self)
+        self.crossbar = Crossbar(self)
 
     #updates everything that needs updating
     def update(self):
@@ -2640,8 +2665,8 @@ class Game:
         self.crossbar.draw()
 
         #debugin thingy
-        #self.map.draw()
-        #self.player.draw()
+        self.map.draw()
+        self.player.draw()
 
     #checks pygame events for key pressed and quits
     def check_events(self):
