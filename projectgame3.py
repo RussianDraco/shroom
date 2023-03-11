@@ -1771,7 +1771,7 @@ class Weapon(AnimatedSprite):
         super().__init__(game=game, path=path, scale=scale, animation_time=animation_time)
         self.images = deque(
             [pg.transform.smoothscale(img, (self.image.get_width() * scale, self.image.get_height() * scale)) for img in self.images])
-        self.weapon_pos = (HALF_WIDTH - self.images[0].get_width() // 2, HEIGHT - self.images[0].get_height())
+        self.weapon_pos = (HALF_WIDTH - self.images[0].get_width() // 2 + 125, HEIGHT - self.images[0].get_height())
         self.reloading = False
         self.num_images = len(self.images)
         self.frame_counter = 0
@@ -2427,6 +2427,22 @@ class Popup:
         return
 
 
+###crossbar###
+class crossbar:
+    def __init__(self, game):
+        self.game = game
+        self.screen = game.screen
+        self.line_col = (200, 200, 200)  # white
+        self.line_length = 50
+        self.line_length = self.line_length//2
+        
+    def draw(self):
+        
+        
+        pg.draw.line(self.screen, self.line_col, (HALF_WIDTH-self.line_length, HALF_HEIGHT), (HALF_WIDTH + self.line_length, HALF_HEIGHT), width=5) #left to right
+        pg.draw.line(self.screen, self.line_col, (HALF_WIDTH, HALF_HEIGHT-self.line_length), (HALF_WIDTH, HALF_HEIGHT+self.line_length), width=5) #up to down
+
+
 ###STATBAR###
 
 
@@ -2581,6 +2597,7 @@ class Game:
         self.text_box = TextBox(self, 200, HALF_HEIGHT + HALF_HEIGHT // 2, HALF_WIDTH + HALF_WIDTH // 2, HALF_HEIGHT // 2)
         self.quest_manager = QuestManager(self)
         self.display_menu = DisplayMenu(self)
+        self.crossbar = crossbar(self)
 
     #updates everything that needs updating
     def update(self):
@@ -2604,6 +2621,7 @@ class Game:
         self.gas_attack.draw()
         self.statbar.draw()
         self.display_menu.draw()
+        self.crossbar.draw()
 
         #debugin thingy
         self.map.draw()
@@ -2651,8 +2669,8 @@ class Game:
 
 #starts the game
 if __name__ == '__main__':
-    lore = Lore()
-    lore.actually_run()
+    #lore = Lore()
+    #lore.actually_run()
     
     game = Game()
     game.run()
