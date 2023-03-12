@@ -210,7 +210,7 @@ class Player:
         self.shot = False
         self.health = PLAYER_MAX_HEALTH
         self.armor = PLAYER_MAX_ARMOR
-        self.ammo = 999
+        self.ammo = 500
         self.showWeapon = True
         self.time_prev = pg.time.get_ticks()
         self.canMove = True
@@ -300,8 +300,8 @@ class Player:
             if self.armor < 0:
                 self.armor = 0
 
-        #self.game.object_renderer.player_damage()
-        #self.game.sound.player_pain.play()
+        self.game.object_renderer.player_damage()
+        self.game.sound_player.play_sound("playerpain", loop=False)
         #self.check_game_over()
 
     #function to check if shot weapon
@@ -1312,7 +1312,7 @@ class ObjectRenderer:
         self.wall_textures = self.load_wall_textures()
         self.sky_image = self.get_texture('resources/textures/sky.png', (WIDTH, HALF_HEIGHT))
         self.sky_offset = 0
-        #self.blood_screen = 
+        self.blood_screen = pg.transform.scale(pg.image.load('resources/sprites/blood.png'), (WIDTH, HEIGHT)); self.blood_screen.set_alpha(100)
         #self.gameoverImg = 
         self.portal_frames = [self.get_texture('resources/textures/portal/0.png'), self.get_texture('resources/textures/portal/1.png'), 
                               self.get_texture('resources/textures/portal/2.png'), self.get_texture('resources/textures/portal/3.png')]
@@ -1365,9 +1365,7 @@ class ObjectRenderer:
 
     #show hurt screen
     def player_damage(self):
-        #self.screen.blit(self.blood_screen, (0, 0))
-        pass
-
+        self.screen.blit(self.blood_screen, (0, 0))
 
     #draw sky and floor, not currently used
     def draw_background(self):
@@ -1926,6 +1924,8 @@ class SoundPlayer:
         self.load_sound("heal", "resources/sound/chew.wav")
         self.load_sound("reload", "resources/sound/reload.wav")
         self.load_sound("pickup", "resources/sound/pickup.wav")
+        self.load_sound("playerpain", "resources/sound/umph.wav")
+        self.load_sound("enemypain", "resources/sound/enemypain.wav")
 
     def load_sound(self, sound_name, sound_file_path):
         self.sounds[sound_name] = pg.mixer.Sound(sound_file_path)
@@ -1993,6 +1993,7 @@ class NPC(AnimatedSprite):
 
     def get_damaged(self, dmg):
         self.health -= dmg
+        self.game.sound_player.play_sound("enemypain", loop=False)
         self.pain = True
         self.check_health()
 
@@ -2062,11 +2063,8 @@ class NPC(AnimatedSprite):
     def check_hit_in_npc(self):
         if self.ray_cast_value and self.game.player.shot:
             if HALF_WIDTH - self.sprite_half_width - 100 < self.screen_x < HALF_WIDTH + self.sprite_half_width - 100:
-                #self.game.sound.npc_pain.play()
                 self.game.player.shot = False
-                self.pain = True
-                self.health -= self.game.weapon.damage
-                self.check_health()
+                self.get_damaged(self.game.weapon.damage)
 
     #check if npc died yet
     def check_health(self):
@@ -2513,6 +2511,7 @@ class StatBar:
         self.screen = game.screen
         self.gas_image = self.game.object_renderer.get_texture('resources/extras/gas.png', res = (ICON_WIDTH, ICON_HEIGHT))
         #self.gas_icon_G = pg.font.Font(None, 90).render("G", False, (255, 255, 255))
+        self.doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 80)
 
     def drawGasIcon(self):
         icon_surface = pg.Surface((ICON_WIDTH, ICON_HEIGHT))
@@ -2545,18 +2544,15 @@ class StatBar:
         #pg.draw.rect(self.screen, FLOOR_COLOR, (0, HALF_HEIGHT, WIDTH, HEIGHT))
         pg.draw.rect(self.screen, 'black', (0, HEIGHT, WIDTH, SHEIGHT))
 
-        doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 90)
+        doom_font = self.doom_font
 
         health = doom_font.render("Health:" + str(self.game.player.health), False, (255, 0, 0))
-
         self.screen.blit(health, (20, HEIGHT + 20))
 
         ammo = doom_font.render("Ammo:" + str(self.game.player.ammo), False, (255, 0, 0))
-
-        self.screen.blit(ammo, (350, HEIGHT + 20))
+        self.screen.blit(ammo, (320, HEIGHT + 20))
 
         armor = doom_font.render("Armor:" + str(self.game.player.armor), False, (255, 0, 0))
-
         self.screen.blit(armor, (590, HEIGHT + 20))
 
         self.drawGasIcon()
