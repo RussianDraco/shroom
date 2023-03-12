@@ -733,10 +733,7 @@ class MazeGenerator:
         if not maze[int(y-1.5)][int(x-1.5)] == 0:
             while not maze[int(y-1.5)][int(x-1.5)] == 0:
                 spawn = choice(empties)
-                print(str(spawn))
                 x,y = spawn
-
-        print(str(maze[int(y-1.5)][int(x-1.5)]))
 
         empties.remove(spawn)
 
@@ -1533,16 +1530,19 @@ class Pickup(SpriteObject):
             elif self.type == "item":
                 self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(self.subtype), self.number)
                 self.game.object_renderer.create_popup(f"Gained {str(self.number)} {self.game.inventory_system.get_item_by_id(self.subtype).name}'s")
+                self.game.sound_player.play_sound("pickup", loop=False)
                 removed = True
 
             elif self.type == "special":
-                if self.subtype == "stomachmedicine":
-                    self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(1))
-                    self.game.object_renderer.create_popup("Gained stomach medicine")
-                    removed = True
+                #if self.subtype == "stomachmedicine":
+                    #self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(1))
+                    #self.game.object_renderer.create_popup("Gained stomach medicine")
+                    #self.game.sound_player.play_sound("pickup", loop=False)
+                    #removed = True
+                pass
 
-                else:
-                    raise ValueError(self.subtype + "is an invalid pickup subtype")
+                #else:
+                    #raise ValueError(self.subtype + "is an invalid pickup subtype")
                 
             else:
                 raise ValueError(self.type + " is an invalid pickup type")
@@ -1916,9 +1916,11 @@ class SoundPlayer:
         pg.mixer.init()
         self.sounds = {}
 
+        self.load_sound("theme", 'resources/sound/themealt.wav')
         self.load_sound("armor", "resources/sound/armor.wav")
         self.load_sound("heal", "resources/sound/chew.wav")
         self.load_sound("reload", "resources/sound/reload.wav")
+        self.load_sound("pickup", "resources/sound/pickup.wav")
 
     def load_sound(self, sound_name, sound_file_path):
         self.sounds[sound_name] = pg.mixer.Sound(sound_file_path)
@@ -2505,6 +2507,7 @@ class StatBar:
         self.game = game
         self.screen = game.screen
         self.gas_image = self.game.object_renderer.get_texture('resources/extras/gas.png', res = (ICON_WIDTH, ICON_HEIGHT))
+        #self.gas_icon_G = pg.font.Font(None, 90).render("G", False, (255, 255, 255))
 
     def drawGasIcon(self):
         icon_surface = pg.Surface((ICON_WIDTH, ICON_HEIGHT))
@@ -2527,6 +2530,8 @@ class StatBar:
 
         # overlay the filled rectangle surface onto the icon surface
         icon_surface.blit(filled_surface, (0, 0))
+
+        #icon_surface.blit(self.gas_icon_G, ((icon_surface.get_width() - self.gas_icon_G.get_width())//2, (icon_surface.get_height() - self.gas_icon_G.get_height())//2 + 5))
 
         # display the icon on the screen
         self.screen.blit(icon_surface, (1500, HEIGHT + 20))
@@ -2772,7 +2777,7 @@ class Game:
 
     #creates instances of all neccesary classes and starts of the game
     def new_game(self):
-        self.sound_player = SoundPlayer(); self.sound_player.load_sound("theme", 'resources/sound/theme.wav'); self.sound_player.play_sound("theme", volume=0.25, loop=True)
+        self.sound_player = SoundPlayer(); self.sound_player.play_sound("theme", volume=0.2, loop=True)
         self.map = Map(self)
         self.player = Player(self)
         self.inventory_system = InventorySystem(self)
