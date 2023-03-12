@@ -910,7 +910,7 @@ class Map:
         self.get_map()
 
     def EXPIREMENTAL_GENERATION(self):
-        synth_map, spwn, portal, spawn_dict = self.generator.generate_maze(30, 30, 20)
+        synth_map, spwn, portal, spawn_dict = self.generator.generate_maze(30, 30, 7)
         self.game.object_handler.clear_entities(); self.game.object_handler.clear_entities()
         self.game.player.teleport(spwn)
         self.load_synthetic_map(synth_map, portal, spawn_dict)
@@ -2480,7 +2480,9 @@ class Popup:
         return
 
 
-###crossbar###
+###CROSSBAR###
+
+
 class Crossbar:
     def __init__(self, game):
         self.game = game
@@ -2553,7 +2555,6 @@ class StatBar:
 
 class Lore:
     def __init__(self):
-        pg.init()
         print("1")
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
         print("2")
@@ -2594,6 +2595,144 @@ class Lore:
             pg.time.delay(3000)
 
 
+###START MENU###
+
+
+class MenuButton:
+    def __init__(self, menu, pos, width, height, text, functionToCall):
+        self.menu = menu
+        self.pos = pos; self.posx, self.posy = pos
+        self.width = width
+        self.height = height
+        self.text = text
+        self.functionToCall = functionToCall
+        self.surf = pg.Surface((self.width, self.height))
+
+        self.button_txt = self.menu.font.render(self.text, False, 'black')
+
+        self.current_color = (200, 200, 200)
+
+        self.mouse_over = False
+
+        self.hidden = False
+
+        self.draw_button()
+
+    def draw_button(self):
+        self.surf.fill('black')
+        pg.draw.rect(self.surf, self.current_color, (0, 0, self.width, self.height), border_radius=5)
+
+        self.surf.blit(self.button_txt, (self.width//2 - self.button_txt.get_width()//2, self.height//2 - self.button_txt.get_height()//2))
+
+    def change_bright(self, mouseOver): #true/false
+        if mouseOver:
+            self.mouse_over = True
+            self.current_color = (255, 255, 255)
+        else:
+            self.mouse_over = False
+            self.current_color = (200, 200, 200)
+        self.draw_button()
+
+    def update(self):
+        if (self.posx <= self.menu.mouseX <= self.posx + self.width) and (self.posy <= self.menu.mouseY <= self.posy + self.height):
+            self.change_bright(True)
+        else:
+            self.change_bright(False)
+
+    def mouseClick(self):
+        if self.mouse_over and not self.hidden:
+            self.functionToCall()
+
+    def draw(self):
+        if not self.hidden:
+            self.menu.screen.blit(self.surf, self.pos)
+
+    def changeHidden(self, hidden):
+        self.hidden = hidden
+        self.change_bright(False)
+
+class StartMenu:
+    def __init__(self):
+        self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
+        self.in_menu = True
+        self.font = pg.font.Font(None, 65)
+        self.mouseX, self.mouseY = pg.mouse.get_pos()
+        self.buttons = []
+        self.inCredits = False
+        self.credits = pg.image.load('resources/sprites/credits.png')
+
+    def update(self):
+        self.mouseX, self.mouseY = pg.mouse.get_pos()
+
+    def get_button(self, buttonFunc):
+        for but in self.buttons:
+            if but.functionToCall == buttonFunc:
+                return but
+
+    def run(self):
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 600), 150, 75, "Exit", self.exit_button))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 100, 500), 200, 75, "Credits", self.credits_button))
+        self.buttons.append(MenuButton(self, (1300, 75), 50, 50, "X", self.X_credits_button))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 400), 150, 75, "Play", self.play_button))
+
+        self.get_button(self.X_credits_button).changeHidden(True)
+
+        while self.in_menu:
+            if self.inCredits:
+                self.update()
+                self.screen.blit(self.credits, (HALF_WIDTH - self.credits.get_width()//2, HALF_HEIGHT - self.credits.get_height()//2))
+                self.get_button(self.X_credits_button).update(); self.get_button(self.X_credits_button).draw()
+                self.click_checks()
+                pg.display.flip()
+                continue
+
+            self.update()
+            [but.update() for but in self.buttons]
+            [but.draw() for but in self.buttons]
+            self.click_checks()
+            pg.display.flip()
+            
+    def click_checks(self):
+        for event in pg.event.get():
+            if event.type == pg.MOUSEBUTTONDOWN:
+                [but.mouseClick() for but in self.buttons]
+
+    def play_lore(self):
+        self.lore = Lore()
+        self.lore.actually_run()
+
+    def exit_button(self):
+        pg.quit()
+        sys.exit()
+
+    def play_button(self):
+        self.in_menu = False
+
+    def credits_button(self):
+        self.screen.fill('black')
+
+        self.inCredits = True
+        [but.changeHidden(True) for but in self.buttons]
+        self.get_button(self.X_credits_button).changeHidden(False)
+
+        [but.update() for but in self.buttons]
+        [but.draw() for but in self.buttons]
+
+        pg.display.flip()
+
+    def X_credits_button(self):
+        self.screen.fill('black')
+
+        self.inCredits = False
+        [but.changeHidden(False) for but in self.buttons]
+        self.get_button(self.X_credits_button).changeHidden(True)
+
+        [but.update() for but in self.buttons]
+        [but.draw() for but in self.buttons]
+
+        pg.display.flip()
+
+
 ###GAME CODE###
 
 
@@ -2601,7 +2740,6 @@ class Lore:
 class Game:
     #def vars, init func
     def __init__(self):
-        pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
         self.clock = pg.time.Clock()
         self.delta_time = 1
@@ -2665,6 +2803,7 @@ class Game:
         pg.display.flip()
         self.delta_time = self.clock.tick(FPS)
         pg.display.set_caption(f'SHROOM - {self.clock.get_fps() :.1f}')
+        pg.display.set_icon(pg.image.load('resources/sprites/logo.png'))
 
     #draws stuff
     def draw(self):
@@ -2721,8 +2860,10 @@ class Game:
 
 #starts the game
 if __name__ == '__main__':
-    #lore = Lore()
-    #lore.actually_run()
+    pg.init()
+
+    start_menu = StartMenu()
+    start_menu.run()
     
     game = Game()
     game.run()
