@@ -283,12 +283,13 @@ class Player:
 
     #check if health is too low
     def check_game_over(self):
-        pass
-        #if self.health < 1:
-        #    self.game.object_renderer.game_over()
-        #    pg.display.flip()
-        #    pg.time.delay(1500)
-        #    self.game.new_game()
+        if self.health < 1:
+            self.game.object_renderer.game_over()
+            pg.display.flip()
+
+            pg.quit()
+
+            #self.game.new_game()
 
     #function to lower health, show hurt screen, play hurt sound and check if health too low
     def get_damage(self, dmg):
@@ -301,7 +302,7 @@ class Player:
 
         #self.game.object_renderer.player_damage()
         #self.game.sound.player_pain.play()
-        self.check_game_over()
+        #self.check_game_over()
 
     #function to check if shot weapon
     def single_fire_event(self, event):
@@ -1323,6 +1324,8 @@ class ObjectRenderer:
 
         self.y_gap = 10 #gap between popups
 
+        self.gameoverImg = pg.transform.scale(pg.image.load("resources/sprites/gameover.png"), (WIDTH, HEIGHT))
+
     def create_popup(self, txt):
         y = self.next_popup_pos()
         self.popup_list.append(Popup(self.game, txt, y))
@@ -1358,8 +1361,7 @@ class ObjectRenderer:
 
     #if you lost, show lose screen
     def game_over(self):
-        #self.screen.blit(gameoverImg, (0, 0))
-        pass
+        self.screen.blit(self.gameoverImg, (0, 0))
 
     #show hurt screen
     def player_damage(self):
@@ -1515,16 +1517,19 @@ class Pickup(SpriteObject):
             elif self.type == "armor":
                 if self.game.player.recover_armor(self.number):
                     self.game.sound_player.play_sound("armor", loop=False)
+                    self.game.object_renderer.create_popup("Picked-up armor")
                     removed = True
 
             elif self.type == "health":
                 if self.game.player.heal(self.number):
                     self.game.sound_player.play_sound("heal", loop=False)
+                    self.game.object_renderer.create_popup("Picked-up health")
                     removed = True
 
             elif self.type == "ammo":
                 self.game.player.ammo += self.number
                 self.game.sound_player.play_sound("reload", loop=False)
+                self.game.object_renderer.create_popup("Picked-up ammo")
                 removed = True
 
             elif self.type == "item":
@@ -1916,7 +1921,7 @@ class SoundPlayer:
         pg.mixer.init()
         self.sounds = {}
 
-        self.load_sound("theme", 'resources/sound/themealt.wav')
+        self.load_sound("theme", 'resources/sound/theme.wav')
         self.load_sound("armor", "resources/sound/armor.wav")
         self.load_sound("heal", "resources/sound/chew.wav")
         self.load_sound("reload", "resources/sound/reload.wav")
