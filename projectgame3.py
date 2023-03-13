@@ -43,7 +43,7 @@ def rotate_image(image, angle):
 
 ###SETTINGS###
 
-RANDOM_GENERATION = True #if true, portals will generate random mazes, else, player made mazes will be used(from levels.json)
+RANDOM_GENERATION = False #if true, portals will generate random mazes, else, player made mazes will be used(from levels.json)
 
 # screen settings
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
@@ -461,7 +461,8 @@ class Item:
 
 #contains all the possible items
 ITEM_DICT = {
-    1 : Item("Stomach Medicine", 'resources/sprites/items/stomachmedicine.png', 1, "the greatest stomach cleanser in the world, even a hellish one")
+    1 : Item("Stomach Medicine", 'resources/sprites/items/stomachmedicine.png', 1, "the greatest stomach cleanser in the world, even a hellish one"),
+    2 : Item("Demon Tears", 'resources/sprites/items/demontear.png', 2, "keep crying demons")
 }
 
 class InventorySystem:
@@ -1737,16 +1738,21 @@ class ObjectHandler:
         [sprite.update_sub() for sprite in self.sprite_list if callable(getattr(sprite, "update_sub", None))]
 
     def clear_entities(self):
-        #repeating twice works better ig?
-        [sprite.self_destruct() for sprite in self.sprite_list]
-        [npc.self_destruct() for npc in self.npc_list]
-        [passive.self_destruct() for passive in self.passive_list]
-        [pickup.self_destruct() for pickup in self.pickup_list]
+        arl = len(self.sprite_list)
+        for x in range(arl):
+            self.sprite_list[0].self_destruct()
 
-        [sprite.self_destruct() for sprite in self.sprite_list]
-        [npc.self_destruct() for npc in self.npc_list]
-        [passive.self_destruct() for passive in self.passive_list]
-        [pickup.self_destruct() for pickup in self.pickup_list]
+        arl = len(self.npc_list)
+        for x in range(arl):
+            self.npc_list[0].self_destruct()
+
+        arl = len(self.passive_list)
+        for x in range(arl):
+            self.passive_list[0].self_destruct()
+
+        arl = len(self.pickup_list)
+        for x in range(arl):
+            self.pickup_list[0].self_destruct()
 
     def load_level_spawns(self, spawndict):    
         self.clear_entities()
