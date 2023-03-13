@@ -843,7 +843,7 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            #["shadowslinger", [3.5, 2.5]]
+            ["satansnovel", [3.5, 2.5]]
         ],
         "passive": [
             {
@@ -1665,8 +1665,18 @@ class AnimatedSprite(SpriteObject):
 
     #function to get all the images in a folder for animating
     def get_images(self, path):
+        #func to sort an array of image paths(i.e. 0.png, 1.png, etc) by their first number to prevent os from ordering them wrong
+        def spec_sort(ar):
+            return [x for _, x in sorted(zip([int(val.replace('.png', '')) for val in ar], ar))]
+
         images = deque()
-        for file_name in os.listdir(path):
+
+        if len(os.listdir(path)) > 10:
+            searchpath = spec_sort(os.listdir(path))
+        else:
+            searchpath = os.listdir(path)
+
+        for file_name in searchpath:
             if os.path.isfile(os.path.join(path, file_name)):
                 img = pg.image.load(path + "/" + file_name).convert_alpha()
                 images.append(img)
@@ -1966,14 +1976,22 @@ class SoundPlayer:
 class NPC(AnimatedSprite):
     def __init__(self, game, path='resources/sprites/npc/basic/0.png', pos=(10.5, 5.5), scale = 0.6, shift = 0.38, animation_time=180, stats = None): #stats is an optional stats class that defines the enemy's stats
         super().__init__(game, path, pos, scale, shift, animation_time)
+
+        #get list of lists of all attack anims
+        self.attack_animations = [self.get_images(self.path + '/' + pth) for pth in os.listdir(self.path) if pth.startswith('attack')]
+        #list of all last attack frames
+        self.last_atk_frames = [ar[-1] for ar in self.attack_animations]
+
+        self.current_atk = None
+
         #gets all its animations's frames
-        self.attack_images = self.get_images(self.path + '/attack')
+        self.attack_images = None#self.get_images(self.path + '/attack')
         self.death_images = self.get_images(self.path + '/death')
         self.idle_images = self.get_images(self.path + '/idle')
         self.pain_images = self.get_images(self.path + '/pain')
         self.walk_images = self.get_images(self.path + '/walk')
 
-        self.last_atk_frame = self.attack_images[-1]
+        self.last_atk_frame = None#self.attack_images[-1]
 
         #defines this npc's constants
         if stats == None:
@@ -2085,10 +2103,16 @@ class NPC(AnimatedSprite):
             #self.game.sound.npc_death.play()
 
     def attack_animate(self):
+        if self.current_atk == None:
+            self.current_atk = randint(0, len(self.attack_animations) - 1)
+            self.attack_images = self.attack_animations[self.current_atk]
+            self.last_atk_frame = self.last_atk_frames[self.current_atk]
+
         self.animate(self.attack_images)
 
         if self.image == self.last_atk_frame:
             self.attack()
+            self.current_atk = None
 
     #main logic runner for npc
     def run_logic(self):
