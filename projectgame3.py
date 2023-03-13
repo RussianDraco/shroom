@@ -34,6 +34,13 @@ def get_json(path):
     json_file.close()
     return data
 
+#rotate an image
+def rotate_image(image, angle):
+    loc = image.get_rect().center
+    rot_sprite = pg.transform.rotate(image, angle)
+    rot_sprite.get_rect().center = loc
+    return rot_sprite
+
 ###SETTINGS###
 
 RANDOM_GENERATION = True #if true, portals will generate random mazes, else, player made mazes will be used(from levels.json)
@@ -804,12 +811,30 @@ base_map = [
     [1, _, _, _, _, _, _, _, _, _, 2, _, _, _, _, 1],
     [1, _, _, _, _, _, _, _, _, _, 3, 2, 2, 2, _, 1],
     [1, 1, _, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, _, 1],
-    [3, _, _, _, _, _, _, 3, _, _, _, _, _, _, _, 1],
-    [1, _, _, _, _, _, _, 5, _, _, _, _, _, _, _, 1],
-    [5, _, _, _, _, _, _, 5, _, _, _, _, _, _, _, 1],
+    [3, _, _, _, _, _, _, 3, 1, _, _, _, _, _, _, 1],
+    [1, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
+    [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
+    [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
+    [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
+    [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
+    [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
     [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     #0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16
 ]
+
+#info abt the bloated goblin that is removed with a stomach medicine
+#btw you need an empty collider in the location of the bloated goblin and the coordaintes of that collider has to be set in the quest so that its correctly removed
+"""{
+    "name": "Bloated Goblin",
+    "path": 'resources/sprites/passive/bellygoblin.png',
+    "pos": [14.5, 7.5],
+    "usetextbox": True,
+    "myline": "Ohhhh, yesterday I ate a- something I wasn't supposed, now I have a terrrrible stomach ache",
+    "pitch": "high",
+    "scale": 1.25,
+    "shift": 0.1,
+    "special_tag": 'bloatedgoblin'
+},"""
 
 #map info for the spawn/base/home
 BASE_DATA = {
@@ -818,7 +843,7 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            ["shadowslinger", [3.5, 2.5]]
+            #["shadowslinger", [3.5, 2.5]]
         ],
         "passive": [
             {
@@ -832,28 +857,11 @@ BASE_DATA = {
                 "shift": 0.27,
                 "special_tag": 'johny'
             },
-            {
-                "name": "Bloated Goblin",
-                "path": 'resources/sprites/passive/bellygoblin.png',
-                "pos": [14.5, 7.5],
-                "usetextbox": True,
-                "myline": "Ohhhh, yesterday I ate a- something I wasn't supposed, now I have a terrrrible stomach ache",
-                "pitch": "high",
-                "scale": 1.25,
-                "shift": 0.1,
-                "special_tag": 'bloatedgoblin'
-            },
-            {
-                "name": "Donkey",
-                "path": 'resources/sprites/passive/donkey.png',
-                "pos": [3.5, 9.5],
-                "usetextbox": True,
-                "myline": "Hello Shrek, welcome to the cul- club, yes I meant club",
-                "pitch": "mid",
-                "scale": 0.8,
-                "shift": 0.2,
-                "special_tag": None
-            }
+            {"name":"Donkey Clone 1","path":"resources/sprites/passive/donkey.png","pos":[2.5,10.5],"usetextbox":True,"myline":"Donkey- clubb-","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None},
+            {"name":"Donkey Clone 2","path":"resources/sprites/passive/donkey.png","pos":[5.5,10.5],"usetextbox":True,"myline":"Talk to Donkey","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None},
+            {"name":"Donkey","path":"resources/sprites/passive/donkey.png","pos":[2.5,14.5],"usetextbox":True,"myline":"Hello Shrek, welcome to the cul- club, yes I meant club","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None},
+            {"name":"Donkey Clone 3","path":"resources/sprites/passive/donkey.png","pos":[5.5,14.5],"usetextbox":True,"myline":"Ooooooooooooh","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None},
+            {"name":"Donkey Clone 4","path":"resources/sprites/passive/donkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"I am donkey, we are donkey. You are donkey?","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None}
         ],
         "sprites": [
             #['resources/sprites/static/candlebra.png', [2.5, 2.5], 0.25, 1.4]
@@ -879,7 +887,7 @@ LEVEL_DATA = get_json('resources/json/levels.json')
 #   cough, cough, never mind the last three lines, idk if they actually apply because i kinda counted wrong when making the location for the empty collider square...
 
 # need to add all empty colliders here, if there is a coordinate here, it will not be able to be walked through, do not forget coordinates start from 1, y increases downwards, x increases to the right
-ALL_EMPTY_COLLIDER = [(14, 7)]
+ALL_EMPTY_COLLIDER = []
 
 #map class
 class Map:
@@ -1437,6 +1445,7 @@ class SpriteObject:
         self.sprite_half_width = 0
         self.SPRITE_SCALE = scale
         self.SPRITE_HEIGHT_SHIFT = shift
+        self.img_angle = 0
 
     #mesure the sprite's projections, add itself to objects to render with its normalized distance, actual image and position
     def get_sprite_projection(self):
@@ -1445,6 +1454,9 @@ class SpriteObject:
         
 
         image = pg.transform.scale(self.image, (proj_width, proj_height))
+
+        if not self.img_angle == 0:
+            image = rotate_image(image, self.img_angle)
 
         self.sprite_half_width = proj_width // 2
         height_shift = proj_height * self.SPRITE_HEIGHT_SHIFT
