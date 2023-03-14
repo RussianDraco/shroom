@@ -28,6 +28,7 @@ def distance_formula(x1, y1, x2, y2):
 def number_distances(ar, num):
     return [abs(i-num) for i in ar]
 
+#returns json dict
 def get_json(path):
     with open(path) as json_file:
         data = json.load(json_file)
@@ -41,6 +42,7 @@ def rotate_image(image, angle):
     rot_sprite.get_rect().center = loc
     return rot_sprite
 
+#get obj from dict, if its not there, return none instead of invoking an error
 def none_get(dict, obj):
     try:
         return dict[obj]
@@ -131,6 +133,7 @@ class Stats: #just a class to store npc stats
 #]
 
 
+#dict describing all the enemies
 ENEMIES = {
     "basic": {
         "path" : 'resources/sprites/npc/basic/0.png',
@@ -961,6 +964,8 @@ class Map:
             self.inBase = True
 
     def get_map(self):
+        #reset world map maybe?
+
         for j, row in enumerate(self.cur_map):
             for i, value in enumerate(row):
                 if value or not value == 0:
@@ -1015,7 +1020,7 @@ class Map:
         except AttributeError:
             self.need_to_load = spawndict
 
-    #debug thinkgy
+    #minimap thinkgy
     def draw(self):
         self.mmsurface.fill('black')
 
