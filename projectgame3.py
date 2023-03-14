@@ -44,7 +44,7 @@ def rotate_image(image, angle):
 def none_get(dict, obj):
     try:
         return dict[obj]
-    except AttributeError:
+    except KeyError:
         return None
 
 ###SETTINGS###
@@ -863,11 +863,7 @@ BASE_DATA = {
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            ["tridemon", [3.5, 2.5]],
-            ["tridemon", [3.5, 2.5]],
-            ["tridemon", [3.5, 2.5]],
-            ["tridemon", [3.5, 2.5]],
-            ["tridemon", [3.5, 2.5]]
+            #["tridemon", [3.5, 2.5]]
         ],
         "passive": [
             {
@@ -933,7 +929,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 1
+        self.current_level = 2 ###CHANGE THIS TO 1
         self.inBase = True
 
         self.generator = MazeGenerator()
