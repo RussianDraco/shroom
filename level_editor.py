@@ -105,7 +105,7 @@ class Map:
         print("Map saved")
 
     def load_random(self):
-        gen = self.maze_generator.generate_maze(6, 6, 0)
+        gen = self.maze_generator.generate_maze(50, 100, 0)
 
         self.map = gen[0]
 
@@ -203,8 +203,7 @@ class MainEditor:
 
         self.map = Map(self)
 
-        self.buttons = [] #general buttons
-        self.sbuttons = [] #wall select buttons
+        self.buttons = []
 
         self.movekeys = {
             pygame.K_w: False,
@@ -223,8 +222,8 @@ class MainEditor:
         self.buttons.append(MenuButton(self, (1490, 80), 100, 55, "Save", self.map.save_game))
         self.buttons.append(MenuButton(self, (1490, 140), 100, 55, "Load", self.map.load_game))
 
-        self.sbuttons.append(MenuButton(self, (500, 20), 50, 50, "P", self.value_selector.portal, colors=[(65, 19, 60), (109, 26, 100)]))
-        self.sbuttons.append(MenuButton(self, (555, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
+        self.buttons.append(MenuButton(self, (500, 20), 50, 50, "P", self.value_selector.portal, colors=[(65, 19, 60), (109, 26, 100)]))
+        self.buttons.append(MenuButton(self, (555, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
 
     def update(self):
         self.screen.fill('black')
@@ -233,7 +232,6 @@ class MainEditor:
         self.map.update()
 
         [but.update() for but in self.buttons]
-        [but.update() for but in self.sbuttons]
 
         pygame.display.flip()
 
@@ -247,7 +245,6 @@ class MainEditor:
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 [but.mouseClick() for but in self.buttons]
-                [but.mouseClick() for but in self.sbuttons]
 
                 self.map.mouseClick(self.mouseX, self.mouseY)
 
