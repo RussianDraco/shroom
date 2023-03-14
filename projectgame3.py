@@ -41,6 +41,12 @@ def rotate_image(image, angle):
     rot_sprite.get_rect().center = loc
     return rot_sprite
 
+def none_get(dict, obj):
+    try:
+        return dict[obj]
+    except AttributeError:
+        return None
+
 ###SETTINGS###
 
 RANDOM_GENERATION = False #if true, portals will generate random mazes, else, player made mazes will be used(from levels.json)
@@ -114,6 +120,16 @@ class Stats: #just a class to store npc stats
         self.attack_damage = attack_dmg
         self.accuracy = accuracy
 
+#enemy drop system
+#how drops array works:
+#[
+# [
+#  item id,
+#  drop chance 0-100, the higher number -> the higher chance of getting it
+#  number of drops: an array of min-max
+# ]
+#]
+
 
 ENEMIES = {
     "basic": {
@@ -170,7 +186,10 @@ ENEMIES = {
             health = 200,
             attack_dmg = 14,
             accuracy = 0.7
-        )
+        ),
+        "drops": [
+            [2, 50, [1, 3]]
+        ]
     },
     "satansnovel": {
         "path": 'resources/sprites/npc/satansnovel/0.png',
@@ -803,11 +822,11 @@ class MazeGenerator:
 _ = False
 P = "p"
 base_map = [
-    [1, 1, 1, 1, 1, P, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, _, _, _, _, _, _, _, _, _, 3, 2, 2, 2, _, 1],
     [1, _, _, _, _, _, _, _, _, _, 2, _, _, _, 2, 1],
     [1, _, _, _, _, _, _, _, _, _, 2, _, _, _, 2, 1],
-    [1, _, _, _, _, _, _, _, _, _, _, _, _, _, 2, 1],
+    [1, _, _, _, _, _, _, _, _, _, _, _, _, _, P, 1],
     [1, _, _, _, _, _, _, _, _, _, 2, _, _, _, 2, 1],
     [1, _, _, _, _, _, _, _, _, _, 2, _, _, _, _, 1],
     [1, _, _, _, _, _, _, _, _, _, 3, 2, 2, 2, _, 1],
@@ -840,11 +859,15 @@ base_map = [
 #map info for the spawn/base/home
 BASE_DATA = {
     "map": base_map,
-    "portal": [5, 1],
+    "portal": [14.5, 4.5],
     "spawn": [1.5, 1.5],
     "spawns": {
         "npc": [
-            ["satansnovel", [3.5, 2.5]]
+            ["tridemon", [3.5, 2.5]],
+            ["tridemon", [3.5, 2.5]],
+            ["tridemon", [3.5, 2.5]],
+            ["tridemon", [3.5, 2.5]],
+            ["tridemon", [3.5, 2.5]]
         ],
         "passive": [
             {
@@ -874,7 +897,8 @@ BASE_DATA = {
     }
 }
 
-PORTAL_X, PORTAL_Y = 5, 1
+#portal coords have to always be the square from which you teleport not the actual portal location
+PORTAL_X, PORTAL_Y = 15, 4
 
 cur_map = None
 
@@ -1754,7 +1778,7 @@ class ObjectHandler:
         for x in range(arl):
             self.pickup_list[0].self_destruct()
 
-    def load_level_spawns(self, spawndict):    
+    def load_level_spawns(self, spawndict):
         self.clear_entities()
 
         if "npc" in spawndict:
@@ -1766,7 +1790,7 @@ class ObjectHandler:
 
                 enemy_data = ENEMIES[npctype]
 
-                self.add_npc(NPC(self.game, enemy_data["path"], npcspawn, enemy_data["scale"], enemy_data["shift"], enemy_data["animation_time"], enemy_data["stats"]))
+                self.add_npc(NPC(self.game, enemy_data["path"], npcspawn, enemy_data["scale"], enemy_data["shift"], enemy_data["animation_time"], enemy_data["stats"], none_get(enemy_data, "drops")))
 
         if "passive" in spawndict:
             passar = spawndict["passive"]
@@ -1830,7 +1854,7 @@ class Spawner: #(invisible)
         npc = None
 
         for x in range(number):
-            npc = NPC(self.game, npc_data['path'], location, npc_data['scale'], npc_data['shift'], npc_data['animation_time'], npc_data['stats'])
+            npc = NPC(self.game, npc_data['path'], location, npc_data['scale'], npc_data['shift'], npc_data['animation_time'], npc_data['stats'], none_get(npc_data, 'drops'))
 
             self.game.object_handler.add_npc(npc)
 
@@ -1980,7 +2004,7 @@ class SoundPlayer:
 
 #non player character class, manages its npc's interaction/movement/work and its graphics
 class NPC(AnimatedSprite):
-    def __init__(self, game, path='resources/sprites/npc/basic/0.png', pos=(10.5, 5.5), scale = 0.6, shift = 0.38, animation_time=180, stats = None): #stats is an optional stats class that defines the enemy's stats
+    def __init__(self, game, path='resources/sprites/npc/basic/0.png', pos=(10.5, 5.5), scale = 0.6, shift = 0.38, animation_time=180, stats = None, drops = None): #stats is an optional stats class that defines the enemy's stats
         super().__init__(game, path, pos, scale, shift, animation_time)
 
         #get list of lists of all attack anims
@@ -2026,6 +2050,8 @@ class NPC(AnimatedSprite):
 
         #trigger to use pathfinding to hunt player down
         self.player_search_trigger = False
+
+        self.drops = drops
 
     def get_damaged(self, dmg):
         self.health -= dmg
@@ -2105,6 +2131,12 @@ class NPC(AnimatedSprite):
     #check if npc died yet
     def check_health(self):
         if self.health < 1:
+            if not self.drops == None:
+                for drp_ar in self.drops:
+                    if randint(1, 100) >= (101 - drp_ar[1]):
+                        #self, game, pos, type, path=None, number=1, scale=0.25, shift=1.6, subtype = ""
+                        self.game.object_handler.add_pickup(Pickup(self.game, (self.x, self.y), 'item', number = randint(drp_ar[2][0], drp_ar[2][1]), subtype = drp_ar[0]))
+
             self.alive = False
             #self.game.sound.npc_death.play()
 
