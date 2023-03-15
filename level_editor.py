@@ -150,6 +150,18 @@ class Map:
         td = dict
         return td
 
+    def outlier_reset(self):
+        shortest = float('inf')
+
+        for x in self.map:
+            shortest = min(shortest, len(x))
+
+        ml = len(self.map)
+        for y in range(ml):
+            self.map[y] = self.map[y][:shortest]
+
+        self.width = shortest
+
     def load_game(self):
         with open('result.json') as json_file:
             data = json.load(json_file)
@@ -187,15 +199,30 @@ class Map:
 
         [pygame.draw.rect(self.editor.screen, pos_color(map_draw[pos]), (pos[0] * self.zoom + self.Xoffset * self.zoom + 300, pos[1] * self.zoom + self.Yoffset * self.zoom + 300, self.zoom, self.zoom), self.thickness) for pos in map_draw]
 
-    def mouseClick(self, mx, my):
+    def mouseClick(self, mx, my, retVal = False):
         row = int((my - 300 - self.Yoffset * self.zoom) // self.zoom)
         col = int((mx - 300 - self.Xoffset * self.zoom) // self.zoom)
+
+        if retVal:
+            print(str((col, row)))
+            return
 
         if (0 <= col <= self.width-1) and (0 <= row <= self.height-1):
             if self.map[row][col] == self.selected:
                 self.map[row][col] = 0
             else:
                 self.map[row][col] = self.selected
+
+    def mouseDrag(self, mx, my):
+        row = int((my - 300 - self.Yoffset * self.zoom) // self.zoom)
+        col = int((mx - 300 - self.Xoffset * self.zoom) // self.zoom)
+
+        if (0 <= col <= self.width-1) and (0 <= row <= self.height-1):
+            if self.map[row][col] != self.selected:
+                for r in range(row, row+1):
+                    for c in range(col, col+1):
+                        if (0 <= c <= self.width-1) and (0 <= r <= self.height-1):
+                            self.map[r][c] = self.selected
 
 class ValueSelector:
     def __init__(self, editor):
@@ -217,6 +244,8 @@ class MainEditor:
 
         self.map = Map(self)
 
+        self.mouseDown = False
+
         self.buttons = []
 
         self.movekeys = {
@@ -236,6 +265,7 @@ class MainEditor:
         self.buttons.append(MenuButton(self, (1490, 80), 100, 55, "Save", self.map.save_game))
         self.buttons.append(MenuButton(self, (1490, 140), 100, 55, "Load", self.map.load_game))
         self.buttons.append(MenuButton(self, (1490, 200), 100, 55, "Reset", self.map.reset_map))
+        self.buttons.append(MenuButton(self, (1490, 260), 100, 55, "Out-Clear", self.map.outlier_reset))
 
         self.buttons.append(MenuButton(self, (500, 20), 50, 50, "P", self.value_selector.portal, colors=[(65, 19, 60), (109, 26, 100)]))
         self.buttons.append(MenuButton(self, (555, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
@@ -261,9 +291,18 @@ class MainEditor:
                 sys.exit()
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                [but.mouseClick() for but in self.buttons]
+                if event.button == 1:
+                    self.mouseDown = True
+                    [but.mouseClick() for but in self.buttons]
 
-                self.map.mouseClick(self.mouseX, self.mouseY)
+                    self.map.mouseClick(self.mouseX, self.mouseY)
+
+                if event.button == 2:
+                    self.map.mouseClick(self.mouseX, self.mouseY, retVal = True)
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    self.mouseDown = False
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -279,6 +318,9 @@ class MainEditor:
 
             elif event.type == pygame.KEYUP:
                 self.movekeys[event.key] = False
+
+            elif event.type == pygame.MOUSEMOTION and self.mouseDown:
+                self.map.mouseDrag(self.mouseX, self.mouseY)
 
         if self.movekeys[pygame.K_w]:
             self.map.Yoffset += 0.02
