@@ -66,6 +66,7 @@ class Map:
         self.editor = editor
 
         self.map = [[1]]
+        self.npcs = []
 
         self.width = 1
         self.height = 1
@@ -74,16 +75,21 @@ class Map:
         self.Yoffset = 0
 
         self.zoom = 20
-        self.thickness = 2
+        self.thickness = 4
 
         self.lvlDict = {}
 
         self.selected = 1
 
+        self.enemy_selected = "bob"
+
         self.maze_generator = MazeGenerator()
 
     def change_select(self, val):
         self.selected = val
+
+    def change_Eselect(self, val):
+        self.enemy_selected = val
 
     def add_width(self):
         self.width += 1
@@ -179,6 +185,8 @@ class Map:
         self.width = 1
         self.height = 1
 
+        self.npcs = []
+
     def update(self):
         self.draw_map()
 
@@ -197,7 +205,10 @@ class Map:
             for i, value in enumerate(row):
                 map_draw[(i, j)] = value
 
-        [pygame.draw.rect(self.editor.screen, pos_color(map_draw[pos]), (pos[0] * self.zoom + self.Xoffset * self.zoom + 300, pos[1] * self.zoom + self.Yoffset * self.zoom + 300, self.zoom, self.zoom), self.thickness) for pos in map_draw]
+        [pygame.draw.rect(self.editor.screen, pos_color(map_draw[pos]), (pos[0] * self.zoom + self.Xoffset * self.zoom + 300, pos[1] * self.zoom + self.Yoffset * self.zoom + 300, self.zoom, self.zoom), self.thickness//2) for pos in map_draw]
+
+        for npc in self.npcs:
+            pygame.draw.circle(self.editor.screen, 'red', (npc[1][0] * self.zoom + self.Xoffset * self.zoom + 300, npc[1][1] * self.zoom + self.Yoffset * self.zoom + 300), self.thickness)
 
     def mouseClick(self, mx, my, retVal = False):
         row = int((my - 300 - self.Yoffset * self.zoom) // self.zoom)
@@ -212,6 +223,33 @@ class Map:
                 self.map[row][col] = 0
             else:
                 self.map[row][col] = self.selected
+
+    def enemyClick(self, mx, my):
+        row = int((my - 300 - self.Yoffset * self.zoom) // self.zoom)
+        col = int((mx - 300 - self.Xoffset * self.zoom) // self.zoom)
+        if not ((0 <= col <= self.width-1) and (0 <= row <= self.height-1)):
+            return
+
+        npc_pos = [v[1] for v in self.npcs]
+
+        def npc_this_los(c, r, np):
+            if (p := [c + 0.5, r + 0.5]) in np:
+                return self.npcs[np.index(p)]
+            return None
+
+        if self.enemy_selected == None:
+            if (p := [col + 0.5, row + 0.5]) in npc_pos:
+                self.npcs.pop(npc_pos.index(p))
+        else:
+            v = npc_this_los(col, row, npc_pos)
+
+            if v == None:
+                self.npcs.append([self.enemy_selected, [col + 0.5, row + 0.5]])
+            elif self.enemy_selected == v[0]:
+                self.npcs.remove(v)
+            elif not v == None and not v[0] == self.enemy_selected:
+                self.npcs.remove(v)
+                self.npcs.append([self.enemy_selected, [col + 0.5, row + 0.5]])
 
     def mouseDrag(self, mx, my):
         row = int((my - 300 - self.Yoffset * self.zoom) // self.zoom)
@@ -234,6 +272,14 @@ class ValueSelector:
 
     def wall(self):
         self.map.change_select(1)
+
+    def floor(self):
+        self.map.change_select(0)
+
+
+    def no_enemy(self):
+        self.map.change_Eselect(None)
+
 
 class MainEditor:
     def __init__(self):
@@ -269,6 +315,9 @@ class MainEditor:
 
         self.buttons.append(MenuButton(self, (500, 20), 50, 50, "P", self.value_selector.portal, colors=[(65, 19, 60), (109, 26, 100)]))
         self.buttons.append(MenuButton(self, (555, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
+        self.buttons.append(MenuButton(self, (610, 20), 50, 50, "N", self.value_selector.floor, colors=[(108, 108, 108), (176, 176, 176)]))
+
+        self.buttons.append(MenuButton(self, (20, 820), 60, 60, "N", self.value_selector.no_enemy, colors=[(108, 108, 108), (176, 176, 176)]))
 
     def update(self):
         self.screen.fill('black')
@@ -297,8 +346,11 @@ class MainEditor:
 
                     self.map.mouseClick(self.mouseX, self.mouseY)
 
-                if event.button == 2:
+                elif event.button == 2:
                     self.map.mouseClick(self.mouseX, self.mouseY, retVal = True)
+
+                elif event.button == 3:
+                    self.map.enemyClick(self.mouseX, self.mouseY)
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
@@ -313,8 +365,10 @@ class MainEditor:
 
                     if event.key == pygame.K_e:
                         self.map.zoom += 3
+                        self.map.thickness += 1
                     elif event.key == pygame.K_q:
                         self.map.zoom -= 3
+                        self.map.thickness -= 1
 
             elif event.type == pygame.KEYUP:
                 self.movekeys[event.key] = False
