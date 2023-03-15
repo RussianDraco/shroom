@@ -679,6 +679,7 @@ class MazeGenerator:
         def isMazeValid(ar, w_, h_, finder = False, startpos = (0,0)):
             #for y_ in range(h_):
             #    for x_ in range(w_)
+
             seen = set([startpos])
             queue = [startpos]
 
@@ -694,10 +695,13 @@ class MazeGenerator:
                     if ni<0 or nj<0 or ni>=w_ or nj>=h_:
                         continue
 
-                    if ar[ni][nj] == "p":
-                        if finder:
-                            return True, list(seen)
-                        return True
+                    try:
+                        if ar[ni][nj] == "p":
+                            if finder:
+                                return True, list(seen)
+                            return True
+                    except IndexError:
+                        continue
 
                     if ar[ni][nj] == 1:
                         continue
@@ -932,7 +936,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 2 ###CHANGE THIS TO 1
+        self.current_level = 1
         self.inBase = True
 
         self.generator = MazeGenerator()

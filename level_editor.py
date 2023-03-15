@@ -105,9 +105,14 @@ class Map:
         print("Map saved")
 
     def load_random(self):
-        gen = self.maze_generator.generate_maze(50, 100, 0)
+        gen = self.maze_generator.generate_maze(30, 30, 0)
 
         self.map = gen[0]
+
+        self.width = len(self.map[0])
+        self.height = len(self.map)
+
+        self.map = self.sl_reset(self.map)
 
         self.Xoffset = 0; self.Yoffset = 0
 
@@ -141,6 +146,10 @@ class Map:
         self.width += 2
         self.height += 2
 
+    def sl_reset(self, dict):
+        td = dict
+        return td
+
     def load_game(self):
         with open('result.json') as json_file:
             data = json.load(json_file)
@@ -152,6 +161,11 @@ class Map:
 
         self.width = len(self.map[0])
         self.height = len(self.map)
+
+    def reset_map(self):
+        self.map = [[1]]
+        self.width = 1
+        self.height = 1
 
     def update(self):
         self.draw_map()
@@ -221,6 +235,7 @@ class MainEditor:
         self.buttons.append(MenuButton(self, (1490, 20), 100, 55, "Random", self.map.load_random))
         self.buttons.append(MenuButton(self, (1490, 80), 100, 55, "Save", self.map.save_game))
         self.buttons.append(MenuButton(self, (1490, 140), 100, 55, "Load", self.map.load_game))
+        self.buttons.append(MenuButton(self, (1490, 200), 100, 55, "Reset", self.map.reset_map))
 
         self.buttons.append(MenuButton(self, (500, 20), 50, 50, "P", self.value_selector.portal, colors=[(65, 19, 60), (109, 26, 100)]))
         self.buttons.append(MenuButton(self, (555, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
@@ -232,6 +247,8 @@ class MainEditor:
         self.map.update()
 
         [but.update() for but in self.buttons]
+
+        self.screen.blit(self.font.render("Selected: " + str(self.map.selected), False, (255, 255, 255)), (20, 80))
 
         pygame.display.flip()
 
