@@ -103,7 +103,11 @@ class Map:
         self.map.append([0] * self.width)
 
     def save_game(self):
+        self.lvlDict = {}
+
         self.lvlDict["map"] = self.map
+        self.lvlDict["spawns"] = {}
+        self.lvlDict["spawns"]["npc"] = self.npcs
 
         with open('result.json', 'w') as fp:
             json.dump(self.lvlDict, fp)
