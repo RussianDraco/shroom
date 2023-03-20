@@ -2958,8 +2958,8 @@ class Game:
 if __name__ == '__main__':
     pg.init()
 
-    start_menu = StartMenu()
-    start_menu.run()
+    #start_menu = StartMenu()
+    #start_menu.run()
     
     game = Game()
     game.run()
