@@ -57,7 +57,6 @@ RANDOM_GENERATION = False #if true, portals will generate random mazes, else, pl
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
 Actualres = Rwidth, Rheight = pygoo.size()
 
-
 #statbar settings
 STATBARRES = SWIDTH, SHEIGHT = WIDTH, 150 #WIDTH, 150 is default
 
