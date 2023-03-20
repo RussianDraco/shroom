@@ -55,7 +55,7 @@ RANDOM_GENERATION = False #if true, portals will generate random mazes, else, pl
 
 # screen settings
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
-#ACTUALRES = RWIDTH, RHEIGHT = pyautosize()
+ACTUALRES = RWIDTH, RHEIGHT = pyautosize()
 
 #statbar settings
 STATBARRES = SWIDTH, SHEIGHT = WIDTH, 150 #WIDTH, 150 is default
@@ -2739,7 +2739,9 @@ class MenuButton:
 
 class StartMenu:
     def __init__(self):
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
+        self.mainscreen = pg.display.set_mode(ACTUALRES)
+        self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT))
+
         self.in_menu = True
         self.font = pg.font.Font(None, 65)
         self.mouseX, self.mouseY = pg.mouse.get_pos()
@@ -2776,6 +2778,10 @@ class StartMenu:
             [but.update() for but in self.buttons]
             [but.draw() for but in self.buttons]
             self.click_checks()
+
+            transcreen = pg.transform.scale(self.screen, ACTUALRES)
+            self.mainscreen.blit(transcreen, (0, 0))
+
             pg.display.flip()
             
     def click_checks(self):
@@ -2826,8 +2832,8 @@ class StartMenu:
 class Game:
     #def vars, init func
     def __init__(self):
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT)) #not a swear work, it is screen height
-        #self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT))
+        self.mainscreen = pg.display.set_mode(ACTUALRES) #not a swear work, it is screen height
+        self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT))
         self.clock = pg.time.Clock()
         self.delta_time = 1
         
@@ -2904,6 +2910,9 @@ class Game:
         #debugin thingy
         self.map.draw()
         self.player.draw()
+
+        transcreen = pg.transform.scale(self.screen, ACTUALRES)
+        self.mainscreen.blit(transcreen, (0, 0))
 
     #checks pygame events for key pressed and quits
     def check_events(self):
