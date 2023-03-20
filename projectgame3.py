@@ -319,7 +319,6 @@ class Player:
     def check_game_over(self):
         if self.health < 1:
             self.game.object_renderer.game_over()
-            pg.display.flip()
 
             pg.quit()
 
@@ -1325,7 +1324,12 @@ class TextBox:
                 #if sound is playing but textbox not writing, stop playing
                 [self.game.sound_player.stop_sound(pit) for pit in ["high", "mid", "deep"] if self.game.sound_player.is_sound_playing(pit)]
             
+        else:
+            #if sound is playing but textbox not writing, stop playing
+            [self.game.sound_player.stop_sound(pit) for pit in ["high", "mid", "deep"] if self.game.sound_player.is_sound_playing(pit)]
 
+    def draw(self):
+        if self.showing:
             self.game.screen.blit(self.back_img, self.pos)
 
             y_ = 15
@@ -1338,9 +1342,6 @@ class TextBox:
                 self.game.screen.blit(appliedTxt, (x + 30, y + y_))
 
                 y_ += 33
-        else:
-            #if sound is playing but textbox not writing, stop playing
-            [self.game.sound_player.stop_sound(pit) for pit in ["high", "mid", "deep"] if self.game.sound_player.is_sound_playing(pit)]
 
 
 ###OBJECT RENDERER###  
@@ -1367,7 +1368,13 @@ class ObjectRenderer:
 
         self.y_gap = 10 #gap between popups
 
+        self.popup_d = {}
+
         self.gameoverImg = pg.transform.scale(pg.image.load("resources/sprites/gameover.png"), (WIDTH, HEIGHT))
+
+        self.npc_talk_dict = {} #array for all passive npcs to specify if they need the talk text to show or not
+
+        self.needTalk_font = pg.font.Font('resources/textutil/textboxfont.ttf', 30)
 
     def create_popup(self, txt):
         y = self.next_popup_pos()
@@ -1386,15 +1393,23 @@ class ObjectRenderer:
             return (poss[-1] + self.y_gap)
 
     def popup_update(self):
-        pops = {p : p.update() for p in self.popup_list}
+        self.popup_d = {p : p.update() for p in self.popup_list}
 
-        for p in pops:
-            self.screen.blit(pops[p], (10, p.pos_y))
+    def draw_popups(self):
+        for p in self.popup_d:
+            self.screen.blit(self.popup_d[p], (10, p.pos_y))
 
     #function to draw background(sky) and to render all game objects
     def draw(self):
         self.draw_background()
         self.render_game_objects()
+        self.draw_popups()
+
+    def draw_npc_talker(self):
+        for val in list(self.npc_talk_dict.values()):
+            if not val == False:
+                needTalk = self.needTalk_font.render("E to talk to " + val[0], False, (255, 255, 255))
+                self.game.screen.blit(needTalk, (val[1] - 200, HEIGHT))
 
     def next_portal_frame(self):
         px, py = self.game.player.map_pos
@@ -1601,7 +1616,7 @@ class Pickup(SpriteObject):
             self.game.object_handler.disable_pickup(self)
             del self
             
-class BasicPassiveNPC(SpriteObject): #NEED TO MAKE A METHOD TO ONLY ALLOW PLAYER TO SPEAK TO ONE NPC AT A TIME AND NOT HAVE MULTIPLE MESSAGES FOR PRESS SPACE TO TALK APPEAR
+class BasicPassiveNPC(SpriteObject):
     def __init__(self, game, path='resources/sprites/passive/ghost.png', pos=(10.5, 3.5), usetextbox=True, myline="hello", 
                  name="character", pitch="high", scale=0.75, shift=0, special_tag = None): #pitch: high/mid/deep
         super().__init__(game, path, pos, scale, shift)
@@ -1648,12 +1663,12 @@ class BasicPassiveNPC(SpriteObject): #NEED TO MAKE A METHOD TO ONLY ALLOW PLAYER
         #if within range, allow talk
         if self.player_in_range() and self.interact_enabled:
             if not self.game.text_box.showing:
-                needTalk_font = pg.font.Font('resources/textutil/textboxfont.ttf', 30)
-
-                needTalk = needTalk_font.render("E to talk to " + self.myname, False, (255, 255, 255))
-
-                self.game.screen.blit(needTalk, (self.screen_x - 200, HEIGHT))
-
+                self.game.object_renderer.npc_talk_dict[self] = [self.myname, self.screen_x]
+            else:
+                self.game.object_renderer.npc_talk_dict[self] = False
+        else:
+            self.game.object_renderer.npc_talk_dict[self] = False
+            
     def special_check(self): #maybe make another one for special checks in update for some cases
         #place to special things for special tags
         if not self.special_tag == None:
@@ -1767,6 +1782,9 @@ class ObjectHandler:
         [npc.update() for npc in self.npc_list]
         [passive.update() for passive in self.passive_list]; [passive.update_sub() for passive in self.passive_list]
         [pickup.update() for pickup in self.pickup_list]; [pickup.update_sub() for pickup in self.pickup_list]
+
+        if not len(self.game.object_renderer.npc_talk_dict) == len(self.passive_list):
+            self.game.object_renderer.npc_talk_dict = {n : False for n in self.passive_list}
 
         #go through every sprite and if it has the update_sub function, run it (This will be used for subclasses that have extra abilities that will all be run with update_sub)
         [sprite.update_sub() for sprite in self.sprite_list if callable(getattr(sprite, "update_sub", None))]
@@ -2631,13 +2649,13 @@ class StatBar:
         doom_font = self.doom_font
 
         health = doom_font.render("Health:" + str(self.game.player.health), False, (255, 0, 0))
-        self.screen.blit(health, (20, HEIGHT + 20))
+        self.screen.blit(health, (20, HEIGHT + 40))
 
         ammo = doom_font.render("Ammo:" + str(self.game.player.ammo), False, (255, 0, 0))
-        self.screen.blit(ammo, (320, HEIGHT + 20))
+        self.screen.blit(ammo, (320, HEIGHT + 40))
 
         armor = doom_font.render("Armor:" + str(self.game.player.armor), False, (255, 0, 0))
-        self.screen.blit(armor, (590, HEIGHT + 20))
+        self.screen.blit(armor, (590, HEIGHT + 40))
 
         self.drawGasIcon()
 
@@ -2898,6 +2916,7 @@ class Game:
         self.text_box.update()
         self.display_menu.update()
         self.quest_manager.update()
+        
         #self.animated_sprite.update()
         pg.display.flip()
         self.delta_time = self.clock.tick(FPS)
@@ -2913,12 +2932,14 @@ class Game:
         self.display_menu.draw()
         self.crossbar.draw()
 
+        self.text_box.draw()
+        self.object_renderer.draw_npc_talker()
+
         #debugin thingy
         self.map.draw()
         self.player.draw()
 
-        transcreen = pg.transform.scale(self.screen, ACTUALRES)
-        self.mainscreen.blit(transcreen, (0, 0))
+        pg.transform.scale(self.screen, ACTUALRES, self.mainscreen)
 
     #checks pygame events for key pressed and quits
     def check_events(self):
@@ -2964,8 +2985,8 @@ class Game:
 if __name__ == '__main__':
     pg.init()
 
-    start_menu = StartMenu()
-    start_menu.run()
+    #start_menu = StartMenu()
+    #start_menu.run()
     
     game = Game()
     game.run()
