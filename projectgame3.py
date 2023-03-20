@@ -57,6 +57,10 @@ RANDOM_GENERATION = False #if true, portals will generate random mazes, else, pl
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
 ACTUALRES = RWIDTH, RHEIGHT = pyautosize()
 
+# screen ratios
+RatioWidth = WIDTH/RWIDTH
+RatioHeight = HEIGHT/RHEIGHT
+
 #statbar settings
 STATBARRES = SWIDTH, SHEIGHT = WIDTH, 150 #WIDTH, 150 is default
 
@@ -2751,6 +2755,8 @@ class StartMenu:
 
     def update(self):
         self.mouseX, self.mouseY = pg.mouse.get_pos()
+        self.mouseX *= RatioWidth
+        self.mouseY = (RatioHeight * self.mouseY) * 1.22
 
     def get_button(self, buttonFunc):
         for but in self.buttons:
@@ -2958,8 +2964,8 @@ class Game:
 if __name__ == '__main__':
     pg.init()
 
-    #start_menu = StartMenu()
-    #start_menu.run()
+    start_menu = StartMenu()
+    start_menu.run()
     
     game = Game()
     game.run()
