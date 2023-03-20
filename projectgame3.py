@@ -2662,9 +2662,10 @@ class StatBar:
 ###LORE###
 
 class Lore:
-    def __init__(self):
+    def __init__(self, editor):
+        self.editor = editor
         print("1")
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
+        self.screen = editor.screen
         print("2")
         self.clock = pg.time.Clock()
         print("3")
@@ -2761,7 +2762,7 @@ class MenuButton:
 
 class StartMenu:
     def __init__(self):
-        self.mainscreen = pg.display.set_mode(ACTUALRES)
+        self.mainscreen = pg.display.set_mode(ACTUALRES)#, pg.FULLSCREEN)
         self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT))
 
         self.in_menu = True
@@ -2774,7 +2775,7 @@ class StartMenu:
     def update(self):
         self.mouseX, self.mouseY = pg.mouse.get_pos()
         self.mouseX *= RatioWidth
-        self.mouseY = (RatioHeight * self.mouseY) * 1.22
+        self.mouseY *= RatioHeight * 1.22
 
     def get_button(self, buttonFunc):
         for but in self.buttons:
@@ -2814,7 +2815,7 @@ class StartMenu:
                 [but.mouseClick() for but in self.buttons]
 
     def play_lore(self):
-        self.lore = Lore()
+        self.lore = Lore(self)
         self.lore.actually_run()
 
     def exit_button(self):
@@ -2856,7 +2857,7 @@ class StartMenu:
 class Game:
     #def vars, init func
     def __init__(self):
-        self.mainscreen = pg.display.set_mode(ACTUALRES) #not a swear work, it is screen height
+        self.mainscreen = pg.display.set_mode(ACTUALRES, pg.FULLSCREEN) #not a swear work, it is screen height
         self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT))
         self.clock = pg.time.Clock()
         self.delta_time = 1
@@ -2985,8 +2986,8 @@ class Game:
 if __name__ == '__main__':
     pg.init()
 
-    #start_menu = StartMenu()
-    #start_menu.run()
+    start_menu = StartMenu()
+    start_menu.run()
     
     game = Game()
     game.run()
