@@ -16,7 +16,7 @@ import os
 from collections import deque
 from random import randint, random, choice, uniform
 import json
-import time
+import pyautogui as pygoo
 #import numpy as np
 
 ###BASIC FUNCTIONS###
@@ -55,6 +55,8 @@ RANDOM_GENERATION = False #if true, portals will generate random mazes, else, pl
 
 # screen settings
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
+Actualres = Rwidth, Rheight = pygoo.size()
+
 
 #statbar settings
 STATBARRES = SWIDTH, SHEIGHT = WIDTH, 150 #WIDTH, 150 is default
@@ -2825,7 +2827,7 @@ class StartMenu:
 class Game:
     #def vars, init func
     def __init__(self):
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT))
+        self.screen = pg.display.set_mode((WIDTH, HEIGHT + SHEIGHT)) #not a swear work, it is screen height
         self.clock = pg.time.Clock()
         self.delta_time = 1
         
