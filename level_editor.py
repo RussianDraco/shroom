@@ -203,6 +203,9 @@ class Map:
             elif val == "p":
                 return 'purple'
 
+        def enem_color(val):
+            return 'red'
+
         map_draw = {}
 
         for j, row in enumerate(self.map):
@@ -212,7 +215,7 @@ class Map:
         [pygame.draw.rect(self.editor.screen, pos_color(map_draw[pos]), (pos[0] * self.zoom + self.Xoffset * self.zoom + 300, pos[1] * self.zoom + self.Yoffset * self.zoom + 300, self.zoom, self.zoom), self.thickness//2) for pos in map_draw]
 
         for npc in self.npcs:
-            pygame.draw.circle(self.editor.screen, 'red', (npc[1][0] * self.zoom + self.Xoffset * self.zoom + 300, npc[1][1] * self.zoom + self.Yoffset * self.zoom + 300), self.thickness)
+            pygame.draw.circle(self.editor.screen, enem_color(npc[0]), (npc[1][0] * self.zoom + self.Xoffset * self.zoom + 300, npc[1][1] * self.zoom + self.Yoffset * self.zoom + 300), self.thickness)
 
     def mouseClick(self, mx, my, retVal = False):
         row = int((my - 300 - self.Yoffset * self.zoom) // self.zoom)
@@ -284,6 +287,10 @@ class ValueSelector:
     def no_enemy(self):
         self.map.change_Eselect(None)
 
+    #for ease of work, spawn is an enemy that just has different consideration factors
+    def spawn(self):
+        self.map.change_Eselect("spawn")
+
 
 class MainEditor:
     def __init__(self):
@@ -318,8 +325,9 @@ class MainEditor:
         self.buttons.append(MenuButton(self, (1490, 260), 100, 55, "Out-Clear", self.map.outlier_reset))
 
         self.buttons.append(MenuButton(self, (500, 20), 50, 50, "P", self.value_selector.portal, colors=[(65, 19, 60), (109, 26, 100)]))
-        self.buttons.append(MenuButton(self, (555, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
-        self.buttons.append(MenuButton(self, (610, 20), 50, 50, "N", self.value_selector.floor, colors=[(108, 108, 108), (176, 176, 176)]))
+        self.buttons.append(MenuButton(self, (555, 20), 50, 50, "S", self.value_selector.spawn, colors=[(6, 122, 11), (17, 203, 24)]))
+        self.buttons.append(MenuButton(self, (610, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
+        self.buttons.append(MenuButton(self, (665, 20), 50, 50, "N", self.value_selector.floor, colors=[(108, 108, 108), (176, 176, 176)]))
 
         self.buttons.append(MenuButton(self, (20, 820), 60, 60, "N", self.value_selector.no_enemy, colors=[(108, 108, 108), (176, 176, 176)]))
 
