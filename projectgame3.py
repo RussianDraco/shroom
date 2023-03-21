@@ -2697,9 +2697,6 @@ class Lore:
             self.screen.blit(obj, obj.get_rect())
             pg.display.flip()
             pg.time.delay(1000)
-            
-        start_menu = StartMenu()
-        start_menu.run()
 
 
 ###START MENU###
