@@ -2662,9 +2662,9 @@ class StatBar:
 ###LORE###
 
 class Lore:
-    def __init__(self, editor):
-        self.editor = editor
-        self.screen = editor.screen
+    def __init__(self, menu):
+        self.menu = menu
+        self.screen = menu.screen
         self.clock = pg.time.Clock()
         self.img_dict = self.make_dict()
         self.actually_run()
@@ -2697,6 +2697,9 @@ class Lore:
             self.screen.blit(obj, obj.get_rect())
             pg.display.flip()
             pg.time.delay(1000)
+            
+        start_menu = StartMenu()
+        start_menu.run()
 
 
 ###START MENU###
