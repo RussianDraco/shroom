@@ -2664,15 +2664,10 @@ class StatBar:
 class Lore:
     def __init__(self, editor):
         self.editor = editor
-        print("1")
         self.screen = editor.screen
-        print("2")
         self.clock = pg.time.Clock()
-        print("3")
         self.img_dict = self.make_dict()
-        print("4")
         self.actually_run()
-        print("5")
     
     @staticmethod
     def get_texture(path):
@@ -2701,7 +2696,7 @@ class Lore:
             self.screen.fill('black')
             self.screen.blit(obj, obj.get_rect())
             pg.display.flip()
-            pg.time.delay(3000)
+            pg.time.delay(1000)
 
 
 ###START MENU###
@@ -2762,7 +2757,7 @@ class MenuButton:
 
 class StartMenu:
     def __init__(self):
-        self.mainscreen = pg.display.set_mode(ACTUALRES)#, pg.FULLSCREEN)
+        self.mainscreen = pg.display.set_mode(ACTUALRES, pg.FULLSCREEN)
         self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT))
 
         self.in_menu = True
@@ -2787,6 +2782,7 @@ class StartMenu:
         self.buttons.append(MenuButton(self, (HALF_WIDTH - 100, 500), 200, 75, "Credits", self.credits_button))
         self.buttons.append(MenuButton(self, (1300, 75), 50, 50, "X", self.X_credits_button))
         self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 400), 150, 75, "Play", self.play_button))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 125, 700), 250, 75, "View Lore", self.play_lore))
 
         self.get_button(self.X_credits_button).changeHidden(True)
 
