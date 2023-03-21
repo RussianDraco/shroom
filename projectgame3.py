@@ -2694,7 +2694,7 @@ class Lore:
         for obj in self.img_dict:
             print("ran")
             self.screen.fill('black')
-            self.screen.blit(obj, obj.get_rect())
+            self.screen.blit(obj, (0, 0))
             pg.display.flip()
             pg.time.delay(1000)
 
