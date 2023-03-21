@@ -2762,7 +2762,7 @@ class MenuButton:
 
 class StartMenu:
     def __init__(self):
-        self.mainscreen = pg.display.set_mode(ACTUALRES)#, pg.FULLSCREEN)
+        self.mainscreen = pg.display.set_mode(ACTUALRES, pg.FULLSCREEN)
         self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT))
 
         self.in_menu = True

@@ -103,9 +103,28 @@ class Map:
         self.map.append([0] * self.width)
 
     def save_game(self):
+        def findObject(map, obj):
+            for y, r in enumerate(map):
+                for x, v in enumerate(r):
+                    if v == obj:
+                        return [x, y]
+            return None
+        def getSpawn(npcs):
+            for n in npcs:
+                if n[0] == "spawn":
+                    return n[1]
+            return None
+
         self.lvlDict = {}
 
         self.lvlDict["map"] = self.map
+        if not (v := findObject(self.map, "p")) == None:
+            self.lvlDict["portal"] = v
+        
+        if not (v := getSpawn(self.npcs)) == None:
+            self.lvlDict["spawn"] = v
+            self.npcs.pop([v[0] for v in self.npcs].index("spawn"))
+
         self.lvlDict["spawns"] = {}
         self.lvlDict["spawns"]["npc"] = self.npcs
 
@@ -178,6 +197,12 @@ class Map:
         json_file.close()
 
         self.map = data["map"]
+        if "spawns" in data:
+            if "npcs" in data["spawns"]:
+                self.npcs = data["spawns"]["npc"]
+
+        if "spawn" in data:
+            self.npcs.append(["spawn", data["spawn"]])
 
         self.Xoffset = 0; self.Yoffset = 0
 
@@ -204,7 +229,10 @@ class Map:
                 return 'purple'
 
         def enem_color(val):
-            return 'red'
+            if val == "spawn":
+                return 'green'
+            else:
+                return 'red'
 
         map_draw = {}
 
