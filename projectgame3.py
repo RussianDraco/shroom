@@ -51,7 +51,7 @@ def none_get(dict, obj):
 
 ###SETTINGS###
 
-RANDOM_GENERATION = False #if true, portals will generate random mazes, else, player made mazes will be used(from levels.json)
+RANDOM_GENERATION = True #if true, portals will generate random mazes, else, player made mazes will be used(from levels.json)
 
 # screen settings
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
