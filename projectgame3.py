@@ -1936,9 +1936,19 @@ class Spawner: #(invisible)
 ###WEAPON###
 
 
+class WeaponSystem:
+    def __init__(self, game):
+        self.game = game
+        self.weapons = [Weapon(self.game), Weapon(self.game, 'resources/sprites/weapon/axe/0.png', animation_time = 40, damage = 75)]
+
+        self.currentWeapon = 0
+
+        self.game.weapon = self.weapons[1]
+
+
 #weapon class, mostly manages visuals/weapon animations
 class Weapon(AnimatedSprite):
-    def __init__(self, game, path = 'resources/sprites/weapon/hand/0.png', scale = 1.75, animation_time = 50):
+    def __init__(self, game, path = 'resources/sprites/weapon/hand/0.png', scale = 1.75, animation_time = 50, damage = 50):
         super().__init__(game=game, path=path, scale=scale, animation_time=animation_time)
         self.images = deque(
             [pg.transform.smoothscale(img, (self.image.get_width() * scale, self.image.get_height() * scale)) for img in self.images])
@@ -1946,7 +1956,9 @@ class Weapon(AnimatedSprite):
         self.reloading = False
         self.num_images = len(self.images)
         self.frame_counter = 0
-        self.damage = 50
+        self.damage = damage
+
+        self.showing = True
 
     #function to animate the working of the weapon
     def animate_shot(self):
@@ -2939,7 +2951,8 @@ class Game:
         self.object_renderer = ObjectRenderer(self)
         self.raycasting = RayCasting(self)
         self.object_handler = ObjectHandler(self)
-        self.weapon = Weapon(self)
+        self.weapon = None
+        self.weapon_system = WeaponSystem(self)
         self.gas_attack = GasAttack(self)
         self.sound = Sound(self)
         self.pathfinding = PathFinding(self)
