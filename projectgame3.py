@@ -2783,16 +2783,18 @@ class MenuButton:
     def draw_button(self):
         self.surf.fill('black')
         pg.draw.rect(self.surf, self.current_color, (0, 0, self.width, self.height), border_radius=5)
-
         self.surf.blit(self.button_txt, (self.width//2 - self.button_txt.get_width()//2, self.height//2 - self.button_txt.get_height()//2))
+        
+        
 
-    def change_bright(self, mouseOver): #true/false
+    def change_bright(self, mouseOver): #true/false changes brightness
         if mouseOver:
             self.mouse_over = True
             self.current_color = (255, 255, 255)
         else:
             self.mouse_over = False
-            self.current_color = (200, 200, 200)
+            self.current_color = (200, 200, 200)      
+        
         self.draw_button()
 
     def update(self):
