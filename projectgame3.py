@@ -51,7 +51,7 @@ def none_get(dict, obj):
 
 ###SETTINGS###
 
-RANDOM_GENERATION = False #if true, portals will generate random mazes, else, player made mazes will be used(from levels.json)
+RANDOM_GENERATION = False #if true, portals will generate random mazes, else, player made mazes will be used (from levels.json)
 
 # screen settings
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
@@ -180,7 +180,10 @@ ENEMIES = {
             health = 200,
             attack_dmg = 18,
             accuracy = 0.6
-        )
+        ),
+        "drops": [
+            [2, 50, [1, 3]]
+        ]
     },
     "tridemon": {
         "path": 'resources/sprites/npc/tridemon/0.png',
@@ -225,7 +228,10 @@ ENEMIES = {
             health = 100,
             attack_dmg = 13,
             accuracy = 0.9
-        )
+        ),
+        "drops": [
+            [2, 50, [1, 3]]
+        ]
     }
 }
 
@@ -542,6 +548,12 @@ class InventorySystem:
 
         else:
             return False
+
+    def demontearnumber(self):
+        if self.in_inventory(self.get_item_by_id(2)):
+            return self.inventory[self.get_item_by_id(2)]
+        else:
+            return 0
 
 
 ###QUEST SYSTEM###
@@ -888,11 +900,11 @@ BASE_DATA = {
                 "shift": 0.27,
                 "special_tag": 'johny'
             },
-            {"name":"Donkey Clone 1","path":"resources/sprites/passive/donkey.png","pos":[2.5,10.5],"usetextbox":True,"myline":"Donkey- clubb-","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None},
-            {"name":"Donkey Clone 2","path":"resources/sprites/passive/donkey.png","pos":[5.5,10.5],"usetextbox":True,"myline":"Talk to Donkey","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None},
-            {"name":"Donkey","path":"resources/sprites/passive/donkey.png","pos":[2.5,14.5],"usetextbox":True,"myline":"Hello Shrek, welcome to the cul- club, yes I meant club","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None},
-            {"name":"Donkey Clone 3","path":"resources/sprites/passive/donkey.png","pos":[5.5,14.5],"usetextbox":True,"myline":"Ooooooooooooh","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None},
-            {"name":"Donkey Clone 4","path":"resources/sprites/passive/donkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"I am donkey, we are donkey. You are donkey?","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None}
+            {"name":"Weapon Donkey","path":"resources/sprites/passive/weapondonkey.png","pos":[2.5,10.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"weapondonkey"},
+            {"name":"Ammo Donkey","path":"resources/sprites/passive/ammodonkey.png","pos":[5.5,10.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"ammodonkey"},
+            {"name":"Medic Donkey","path":"resources/sprites/passive/medicdonkey.png","pos":[2.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"medicdonkey"},
+            {"name":"Armor Donkey","path":"resources/sprites/passive/armordonkey.png","pos":[5.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"armordonkey"},
+            {"name":"Donkey","path":"resources/sprites/passive/donkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"I am donkey, we are donkey. You are donkey?","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None}
         ],
         "sprites": [
             #['resources/sprites/static/candlebra.png', [2.5, 2.5], 0.25, 1.4]
@@ -973,7 +985,6 @@ class Map:
 
     def get_map(self):
         #reset world map maybe?
-
         for j, row in enumerate(self.cur_map):
             for i, value in enumerate(row):
                 if value or not value == 0:
@@ -1674,6 +1685,41 @@ class BasicPassiveNPC(SpriteObject):
         if not self.special_tag == None:
             if self.special_tag == 'bloatedgoblin':
                 self.game.quest_manager.request_quest(self.game.quest_manager.get_quest_by_id(1))
+            elif self.special_tag == "medicdonkey":
+                if self.game.player.health < 100:
+                    if self.game.inventory_system.demontearnumber() >= 3:
+                        self.nextlinequery.append("Ya, ill get you healed right up")
+                        self.game.player.health = 100
+                        self.game.inventory_system.remove_item(self.game.inventory_system.get_item_by_id(2), 3)
+                        self.game.object_renderer.create_popup("Payed 3 demon tears")
+                        self.game.object_renderer.create_popup("Completely healed")
+                    else:
+                        self.nextlinequery.append("Thats not enough! This isn't a charity you know... it's 3 demon tears buddy")
+                else:
+                    self.nextlinequery.append("You're already healed, come back if you're injured, only 3 demon tears to heal up!")
+            elif self.special_tag == "weapondonkey":
+                self.nextlinequery.append("I sell weapons")
+            elif self.special_tag == "ammodonkey":
+                if self.game.inventory_system.demontearnumber() >= 1:
+                    self.nextlinequery.append("I'll get you some ammo right away")
+                    self.game.player.ammo = self.game.player.ammo + 15
+                    self.game.inventory_system.remove_item(self.game.inventory_system.get_item_by_id(2), 1)
+                    self.game.object_renderer.create_popup("Payed 1 demon tears")
+                    self.game.object_renderer.create_popup("15 ammo purchased")
+                else:
+                    self.nextlinequery.append("I sell ammo, 15 per demon tear")
+            elif self.special_tag == "armordonkey":
+                if self.game.player.armor < 100:
+                    if self.game.inventory_system.demontearnumber() >= 4:
+                        self.nextlinequery.append("Armor coming up...")
+                        self.game.player.armor = 100
+                        self.game.inventory_system.remove_item(self.game.inventory_system.get_item_by_id(2), 4)
+                        self.game.object_renderer.create_popup("Payed 4 demon tears")
+                        self.game.object_renderer.create_popup("Armor purchased")
+                    else:
+                        self.nextlinequery.append("You'll need more than that, its 4 demon tears for some good ol' armor")
+                else:
+                    self.nextlinequery.append("You seem pretty equiped with that armor, you don't need it right now")
 
     def add_next_line(self, line):
         self.nextlinequery.append(line)
@@ -2781,11 +2827,11 @@ class StartMenu:
                 return but
 
     def run(self):
-        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 600), 150, 75, "Exit", self.exit_button))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 700), 150, 75, "Exit", self.exit_button))
         self.buttons.append(MenuButton(self, (HALF_WIDTH - 100, 500), 200, 75, "Credits", self.credits_button))
         self.buttons.append(MenuButton(self, (1300, 75), 50, 50, "X", self.X_credits_button))
         self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 400), 150, 75, "Play", self.play_button))
-        self.buttons.append(MenuButton(self, (HALF_WIDTH - 125, 700), 250, 75, "View Lore", self.play_lore))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 125, 600), 250, 75, "View Lore", self.play_lore))
 
         self.get_button(self.X_credits_button).changeHidden(True)
 
