@@ -230,7 +230,17 @@ class Map:
 
         def enem_color(val):
             if val == "spawn":
-                return 'green'
+                return 'white'
+            elif val == "tridemon":
+                return (170, 183, 20)
+            elif val == "gemdemon":
+                return (248, 11, 11)
+            elif val == "shadowslinger":
+                return (112, 18, 125)
+            elif val == "zombie":
+                return (41, 150, 16)
+            elif val == "satansnovel":
+                return (106, 55, 15)
             else:
                 return 'red'
 
@@ -315,6 +325,21 @@ class ValueSelector:
     def no_enemy(self):
         self.map.change_Eselect(None)
 
+    def tridemon(self):
+        self.map.change_Eselect("tridemon")
+    
+    def shadowslinger(self):
+        self.map.change_Eselect("shadowslinger")
+
+    def gemdemon(self):
+        self.map.change_Eselect("gemdemon")
+
+    def satansnovel(self):
+        self.map.change_Eselect("satansnovel")
+
+    def zombie(self):
+        self.map.change_Eselect("zombie")
+
     #for ease of work, spawn is an enemy that just has different consideration factors
     def spawn(self):
         self.map.change_Eselect("spawn")
@@ -357,7 +382,13 @@ class MainEditor:
         self.buttons.append(MenuButton(self, (610, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
         self.buttons.append(MenuButton(self, (665, 20), 50, 50, "N", self.value_selector.floor, colors=[(108, 108, 108), (176, 176, 176)]))
 
+        #                                                                                                           "dark" "light"
         self.buttons.append(MenuButton(self, (20, 820), 60, 60, "N", self.value_selector.no_enemy, colors=[(108, 108, 108), (176, 176, 176)]))
+        self.buttons.append(MenuButton(self, (85, 820), 60, 60, "T", self.value_selector.tridemon, colors=[(111, 120, 12), (170, 183, 20)]))
+        self.buttons.append(MenuButton(self, (150, 820), 60, 60, "G", self.value_selector.gemdemon, colors=[(142, 23, 23), (248, 11, 11)]))
+        self.buttons.append(MenuButton(self, (215, 820), 60, 60, "S", self.value_selector.shadowslinger, colors=[(58, 9, 65), (112, 18, 125)]))
+        self.buttons.append(MenuButton(self, (280, 820), 60, 60, "Z", self.value_selector.zombie, colors=[(21, 67, 10), (41, 150, 16)]))
+        self.buttons.append(MenuButton(self, (345, 820), 60, 60, "B", self.value_selector.satansnovel, colors=[(65, 34, 10), (106, 55, 15)]))
 
     def update(self):
         self.screen.fill('black')
