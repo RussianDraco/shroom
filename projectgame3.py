@@ -4,7 +4,7 @@
 #textures: https://www.doomworld.com/afterglow/textures/
 
 """
-To make it easier to navigate, the code is seperated into sections with triple hashtag comments
+To make it easier to navigate, the code is separated into sections with triple hashtag comments
 Classes are more widely used to create simplicity
 """
 ###IMPORTS###
