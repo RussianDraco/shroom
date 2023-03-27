@@ -2738,6 +2738,7 @@ class Lore:
 
     def actually_run(self):
         for obj in self.img_dict:
+            
             print("ran")
             self.screen.fill('black')
             self.screen.blit(obj, (0, 0))
@@ -2781,7 +2782,7 @@ class MenuButton:
             self.current_color = (255, 255, 255)
         else:
             self.mouse_over = False
-            self.current_color = (200, 200, 200)      
+            self.current_color = (200, 200, 200)    
         
         self.draw_button()
 
@@ -2806,7 +2807,7 @@ class MenuButton:
 class StartMenu:
     def __init__(self):
         self.mainscreen = pg.display.set_mode(ACTUALRES, pg.FULLSCREEN)
-        self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT))
+        self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT)) # not a swear word, stands for s height
 
         self.in_menu = True
         self.font = pg.font.Font(None, 65)
@@ -2839,6 +2840,7 @@ class StartMenu:
                 self.update()
                 self.screen.blit(self.credits, (HALF_WIDTH - self.credits.get_width()//2, HALF_HEIGHT - self.credits.get_height()//2))
                 self.get_button(self.X_credits_button).update(); self.get_button(self.X_credits_button).draw()
+    
                 self.click_checks()
                 pg.display.flip()
                 continue
@@ -2868,7 +2870,7 @@ class StartMenu:
 
     def play_button(self):
         self.in_menu = False
-
+        
     def credits_button(self):
         self.screen.fill('black')
 
