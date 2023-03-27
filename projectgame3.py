@@ -1939,11 +1939,22 @@ class Spawner: #(invisible)
 class WeaponSystem:
     def __init__(self, game):
         self.game = game
-        self.weapons = [Weapon(self.game), Weapon(self.game, 'resources/sprites/weapon/axe/0.png', animation_time = 40, damage = 75)]
+        self.weapons = [Weapon(self.game), Weapon(self.game, 'resources/sprites/weapon/axe/0.png', scale = 2.5, animation_time = 60, damage = 75)]
 
         self.currentWeapon = 0
 
-        self.game.weapon = self.weapons[1]
+        self.change_weapon(1)
+
+    def change_weapon(self, indx):
+        self.game.weapon = self.weapons[indx]
+
+    def call_event(self, event):
+        if event.key == pg.K_1:
+            self.currentWeapon = 0
+            self.change_weapon(0)
+        elif event.key == pg.K_2:
+            self.currentWeapon = 1
+            self.change_weapon(1)
 
 
 #weapon class, mostly manages visuals/weapon animations
@@ -3028,6 +3039,7 @@ class Game:
                 self.text_box.event_call(event)
                 self.display_menu.event_call(event)
                 [passive.event_call(event) for passive in self.object_handler.passive_list]
+                self.weapon_system.call_event(event)
             if event.type == pg.KEYUP:
                 self.keys[event.key] = False
             self.player.single_fire_event(event)
