@@ -1709,7 +1709,7 @@ class BasicPassiveNPC(SpriteObject):
                 w_price = next_weapon_info["price"]
                 w_name = next_weapon_info["name"]
 
-                if self.self.game.inventory_system.demontearnumber() >= w_price:
+                if self.game.inventory_system.demontearnumber() >= w_price:
                     self.nextlinequery.append(f"Here is your {w_name}")
                     self.game.weapon_system.get_weapon(last_weapon_indx + 1)
                     self.game.inventory_system.remove_item(self.game.inventory_system.get_item_by_id(2), w_price)
