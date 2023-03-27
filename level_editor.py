@@ -350,7 +350,7 @@ class MainEditor:
         self.mouseX, self.mouseY = pygame.mouse.get_pos()
         self.font = pygame.font.Font(None, 30)
 
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
         self.map = Map(self)
 
