@@ -1698,7 +1698,26 @@ class BasicPassiveNPC(SpriteObject):
                 else:
                     self.nextlinequery.append("You're already healed, come back if you're injured, only 3 demon tears to heal up!")
             elif self.special_tag == "weapondonkey":
-                self.nextlinequery.append("I sell weapons")
+                last_weapon_indx = self.game.weapon_system.weapon_ids[-1]
+
+                try:
+                    next_weapon_info = self.game.weapon_system.weapon_store[last_weapon_indx + 1]
+                except KeyError:
+                    self.nextlinequery.append(f"You got my whole arsenal mate, I don't have anything new for you")
+                    return
+                
+                w_price = next_weapon_info["price"]
+                w_name = next_weapon_info["name"]
+
+                if self.self.game.inventory_system.demontearnumber() >= w_price:
+                    self.nextlinequery.append(f"Here is your {w_name}")
+                    self.game.weapon_system.get_weapon(last_weapon_indx + 1)
+                    self.game.inventory_system.remove_item(self.game.inventory_system.get_item_by_id(2), w_price)
+                    self.game.object_renderer.create_popup(f"Payed {str(w_price)} demon tears")
+                    self.game.object_renderer.create_popup(f"Purchased the {w_name}")
+                else:
+                    self.nextlinequery.append(f"Your next weapon is the {w_name}, that will cost you {str(w_price)} demon tears")
+
             elif self.special_tag == "ammodonkey":
                 if self.game.inventory_system.demontearnumber() >= 1:
                     self.nextlinequery.append("I'll get you some ammo right away")
@@ -1939,21 +1958,46 @@ class Spawner: #(invisible)
 class WeaponSystem:
     def __init__(self, game):
         self.game = game
-        self.weapons = [Weapon(self.game), Weapon(self.game, 'resources/sprites/weapon/axe/0.png', scale = 2.5, animation_time = 60, damage = 75)]
+        #all weapons that exist
+        self.weapons = [Weapon(self.game), 
+                        Weapon(self.game, 'resources/sprites/weapon/axe/0.png', scale = 2.5, animation_time = 60, damage = 75)]
+
+        self.weapon_store = {
+                1 : {
+                    "name" : "Onion Axe",
+                    "price" : 15
+                }
+            }
+
+        #the weapons you have rn
+        self.my_weapons = [self.weapons[0]]
+        #weapon ids you own
+        self.weapon_ids = [0]
 
         self.currentWeapon = 0
 
-        self.change_weapon(1)
+        self.change_weapon(0)
+
+    #should not get weapon 2 before weapon 1, only can buy last weapon +1
+    def get_weapon(self, indx):
+        if indx in self.weapon_ids:
+            return
+
+        self.my_weapons.append(self.weapons[indx])
+        self.weapon_ids.append(indx)
+
+        self.change_weapon(indx)
 
     def change_weapon(self, indx):
-        self.game.weapon = self.weapons[indx]
+        if not indx in self.weapon_ids:
+            return
+        self.currentWeapon = indx
+        self.game.weapon = self.my_weapons[indx]
 
     def call_event(self, event):
         if event.key == pg.K_1:
-            self.currentWeapon = 0
             self.change_weapon(0)
         elif event.key == pg.K_2:
-            self.currentWeapon = 1
             self.change_weapon(1)
 
 
