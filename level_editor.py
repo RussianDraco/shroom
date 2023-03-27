@@ -198,7 +198,7 @@ class Map:
 
         self.map = data["map"]
         if "spawns" in data:
-            if "npcs" in data["spawns"]:
+            if "npc" in data["spawns"]:
                 self.npcs = data["spawns"]["npc"]
 
         if "spawn" in data:
