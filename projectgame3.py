@@ -997,14 +997,22 @@ class Map:
         global PORTAL_X, PORTAL_Y
         PORTAL_X, PORTAL_Y = BASE_DATA["portal"][0], BASE_DATA["portal"][1]
 
-        self.change_map(lvlmap)
+        self.change_map(lvlmap, base=True)
         try:
             self.game.object_handler.load_level_spawns(lvlspawn)
         except AttributeError:
             self.need_to_load = lvlspawn
 
-    def change_map(self, newmap): #should update to new map
+    def change_map(self, newmap, texture_offset = None, base = False): #should update to new map
         global cur_map
+
+        if not texture_offset == None and not base:
+            inttype = type(1)
+            for y, r in enumerate(newmap):
+                for x, v in enumerate(r):
+                    if type(newmap[y][x]) == inttype and not newmap[y][x] == 0:
+                        newmap[y][x] = int(v) + texture_offset
+
         cur_map = newmap
 
         self.cur_map = cur_map
@@ -1021,7 +1029,7 @@ class Map:
         global PORTAL_X, PORTAL_Y
         PORTAL_X, PORTAL_Y = portalLoc[0], portalLoc[1]
 
-        self.change_map(lvlmap)
+        self.change_map(lvlmap, none_get(lvldata, "textureOffset"))
         try:
             self.game.object_handler.load_level_spawns(lvlspawn)
         except AttributeError:
