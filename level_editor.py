@@ -224,7 +224,15 @@ class Map:
             if val == 0:
                 return 'darkgray'
             elif val == 1:
+                return 'red'
+            elif val == 2:
+                return 'orange'
+            elif val == 3:
                 return 'yellow'
+            elif val == 4:
+                return 'lightgreen'
+            elif val == 5:
+                return 'blue'
             elif val == "p":
                 return 'purple'
 
@@ -315,8 +323,16 @@ class ValueSelector:
     def portal(self):
         self.map.change_select("p")
 
-    def wall(self):
+    def wall1(self):
         self.map.change_select(1)
+    def wall2(self):
+        self.map.change_select(2)
+    def wall3(self):
+        self.map.change_select(3)
+    def wall4(self):
+        self.map.change_select(4)
+    def wall5(self):
+        self.map.change_select(5)
 
     def floor(self):
         self.map.change_select(0)
@@ -350,7 +366,7 @@ class MainEditor:
         self.mouseX, self.mouseY = pygame.mouse.get_pos()
         self.font = pygame.font.Font(None, 30)
 
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
 
         self.map = Map(self)
 
@@ -379,8 +395,14 @@ class MainEditor:
 
         self.buttons.append(MenuButton(self, (500, 20), 50, 50, "P", self.value_selector.portal, colors=[(65, 19, 60), (109, 26, 100)]))
         self.buttons.append(MenuButton(self, (555, 20), 50, 50, "S", self.value_selector.spawn, colors=[(6, 122, 11), (17, 203, 24)]))
-        self.buttons.append(MenuButton(self, (610, 20), 50, 50, "W", self.value_selector.wall, colors=[(194, 186, 16), (226, 216, 11)]))
-        self.buttons.append(MenuButton(self, (665, 20), 50, 50, "N", self.value_selector.floor, colors=[(108, 108, 108), (176, 176, 176)]))
+
+        self.buttons.append(MenuButton(self, (610, 20), 50, 50, "W1", self.value_selector.wall1, colors=[(255, 0, 0), (233, 28, 28)]))
+        self.buttons.append(MenuButton(self, (665, 20), 50, 50, "W2", self.value_selector.wall2, colors=[(255, 172, 0), (225, 170, 55)]))
+        self.buttons.append(MenuButton(self, (720, 20), 50, 50, "W3", self.value_selector.wall3, colors=[(255, 249, 0), (228, 224, 72)]))
+        self.buttons.append(MenuButton(self, (775, 20), 50, 50, "W4", self.value_selector.wall4, colors=[(81, 238, 52), (123, 234, 103)]))
+        self.buttons.append(MenuButton(self, (830, 20), 50, 50, "W5", self.value_selector.wall5, colors=[(95, 99, 235), (137, 140, 240)]))
+
+        self.buttons.append(MenuButton(self, (885, 20), 50, 50, "N", self.value_selector.floor, colors=[(108, 108, 108), (176, 176, 176)]))
 
         #                                                                                                           "dark" "light"
         self.buttons.append(MenuButton(self, (20, 820), 60, 60, "N", self.value_selector.no_enemy, colors=[(108, 108, 108), (176, 176, 176)]))
@@ -399,6 +421,7 @@ class MainEditor:
         [but.update() for but in self.buttons]
 
         self.screen.blit(self.font.render("Selected: " + str(self.map.selected), False, (255, 255, 255)), (20, 80))
+        self.screen.blit(self.font.render(str(self.map.width) + "x" + str(self.map.height), False, (255, 255, 255)), (20, 105))
 
         pygame.display.flip()
 
