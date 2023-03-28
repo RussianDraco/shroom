@@ -904,7 +904,8 @@ BASE_DATA = {
             {"name":"Ammo Donkey","path":"resources/sprites/passive/ammodonkey.png","pos":[5.5,10.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"ammodonkey"},
             {"name":"Medic Donkey","path":"resources/sprites/passive/medicdonkey.png","pos":[2.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"medicdonkey"},
             {"name":"Armor Donkey","path":"resources/sprites/passive/armordonkey.png","pos":[5.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"armordonkey"},
-            {"name":"Donkey","path":"resources/sprites/passive/donkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"I am donkey, we are donkey. You are donkey?","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None}
+            {"name":"Pawn Donkey","path":"resources/sprites/passive/pawndonkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"pawndonkey"}
+            #{"name":"Donkey","path":"resources/sprites/passive/donkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"I am donkey, we are donkey. You are donkey?","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None}
         ],
         "sprites": [
             #['resources/sprites/static/candlebra.png', [2.5, 2.5], 0.25, 1.4]
@@ -1662,7 +1663,7 @@ class BasicPassiveNPC(SpriteObject):
 
     def event_call(self, event):
         if self.player_in_range() and self.interact_enabled:
-            if event.key == pg.K_e and not self.game.text_box.showing and self.game.text_box.time_limit_done() and self.use_textbox: #maybe add a self.screen_x req so that you cant talk to people behind you
+            if event.key == pg.K_e and not self.game.text_box.showing and self.game.text_box.time_limit_done() and self.use_textbox and not self.game.display_menu.showing: #maybe add a self.screen_x req so that you cant talk to people behind you
                 self.special_check()
                 if not self.special_tag == None:
                     self.game.quest_manager.quest_watch(self)
@@ -2468,27 +2469,41 @@ SLOT_SIZE = SLOT_X, SLOT_Y = 75, 75
 
 #class for inventory icons, creates one per item in inventory
 class InventoryIcon:
-    def __init__(self, game, id):
+    def __init__(self, game, id, from_pawn_shop = False):
         self.game = game
         self.id = id
         self.icon = ""
         self.quantity = 0
+        self.from_pawn_shop = from_pawn_shop
+
+        self.posx, self.posy = None, None
+
+        if from_pawn_shop:
+            self.darken = False
     
     def update_id(self, id):
         self.id = id
 
+    def set_pos(self, x, y):
+        self.posx = x; self.posy = y
+
     def update(self):
         #function to update self.icon and self.quantity to the position of self.id in the inventory
-        myitem = self.game.display_menu.item_list[self.id]
+        if self.from_pawn_shop:
+            myitem = self.game.pawn_shop.item_list[self.id]
+        else:
+            myitem = self.game.display_menu.item_list[self.id]
         self.icon = myitem.icon
         self.quantity = self.game.inventory_system.inventory[myitem]
 
         return self.draw()
 
-    def draw(self):
-        icon_size = SLOT_SIZE
+    def darken_slot(self):
+        if self.from_pawn_shop:
+            self.darken = True
 
-        my_surface = pg.Surface(icon_size)
+    def draw(self):
+        my_surface = pg.Surface(SLOT_SIZE)
 
         white_bck = pg.Rect(3, 3, SLOT_X - 6, SLOT_Y - 6)
         pg.draw.rect(my_surface, (255, 255, 255), white_bck)
@@ -2506,9 +2521,23 @@ class InventoryIcon:
         if self.quantity > 1:
             my_surface.blit(quantity_txt, (SLOT_X - quantity_txt.get_width() - 5, SLOT_Y - quantity_txt.get_height())) ##NEED TO FIX QUANTITY TEXT
 
+        if self.from_pawn_shop:
+            if self.darken:
+                s = pg.Surface(SLOT_SIZE); s.set_alpha(64); s.fill((0, 0, 0))
+                my_surface.blit(s, (0,0))
+
         #return a finished icon surface
 
         return my_surface
+
+    def check_mouse_click(self, mx, my):
+        if self.posx == None or self.posy == None:
+            return
+    
+        if (self.posx <= mx <= self.posx + SLOT_X) and (self.posy <= my <= self.posy + SLOT_Y):
+            self.game.pawn_shop.slot_clicked(self)
+        else:
+            self.darken = False
 
 QUEST_RES = QUEST_X, QUEST_Y = 270, 100
 
@@ -2580,15 +2609,13 @@ class DisplayMenu:
             self.inven_surface.set_alpha(210)
 
             self.draw_inventory()
-
-            quest_surface = self.draw_quests()
-
-            self.screen.blit(quest_surface, (int(DISPLAY_X * 1.3), 80))
+            
+            self.screen.blit(self.draw_quests(), (int(DISPLAY_X * 1.3), 80))
 
             self.screen.blit(self.inven_surface, (80, 80))
 
     def event_call(self, event):
-        if event.key == pg.K_TAB:
+        if event.key == pg.K_TAB and not self.game.text_box.showing:
             self.showing = not self.showing
 
     def draw_quests(self):
@@ -2666,6 +2693,86 @@ class DisplayMenu:
             self.game.player.inventoryOpen = True
         else:
             self.game.player.inventoryOpen = False
+
+class PawnShopMenu:
+    def __init__(self, game):
+        self.game = game
+
+        self.screen = self.game.screen
+
+        self.showing = True
+
+        self.item_list = []
+        self.inventory_icons = []
+
+        self.inven_surface = None
+
+        self.selected_slot = None
+
+    def set_showing(self, shw):
+        self.showing = shw
+
+    def draw(self):
+        if self.showing:
+            self.inven_surface = pg.Surface(DISPLAY_RES)
+
+            pg.draw.rect(self.inven_surface, 'white', (5, 5, DISPLAY_X - 10, DISPLAY_Y - 10))
+
+            self.inven_surface.set_alpha(240)
+
+            self.draw_inventory()
+
+            self.check_slot_click()
+
+            self.screen.blit(self.inven_surface, (350, 150))
+
+    def draw_inventory(self):
+        self.item_list = []
+        for itm in self.game.inventory_system.inventory:
+            self.item_list.append(itm)
+
+        missing_icon_n = len(self.item_list) - len(self.inventory_icons)
+
+        if missing_icon_n > 0:
+            for x in range(missing_icon_n):
+                self.inventory_icons.append(InventoryIcon(self.game, len(self.inventory_icons), True))
+        elif missing_icon_n < 0:
+            for x in range(abs(missing_icon_n)):
+                self.inventory_icons.pop(-1)
+
+            n = 0
+            for icon in self.inventory_icons:
+                icon.update_id(n)
+                n+=1
+
+        pos = 0
+        for icon in self.inventory_icons:
+            slot = icon.update()
+
+            x_padding, y_padding = 10, 10
+
+            x = (pos % SLOT_HOR_LIMIT) * SLOT_X + x_padding * pos + 30
+            y = (math.floor(pos / SLOT_HOR_LIMIT)) * SLOT_Y + y_padding * math.floor(pos / SLOT_HOR_LIMIT) + 30
+
+            self.inven_surface.blit(slot, (x, y))
+
+            icon.set_pos(x, y)
+
+            pos+=1
+
+    def slot_clicked(self, slot):
+        self.selected_slot = slot
+        slot.darken_slot()
+
+    def check_slot_click(self):
+        if not self.showing:
+            return
+
+        mouseX, mouseY = pg.mouse.get_pos()
+        mouseX *= RatioWidth
+        mouseY *= RatioHeight * 1.22
+
+        [i.check_mouse_click(mouseX, mouseY) for i in self.inventory_icons]
 
 
 ###POPUP MESSAGE###
@@ -3028,6 +3135,7 @@ class Game:
         self.quest_manager = QuestManager(self)
         self.display_menu = DisplayMenu(self)
         self.crossbar = Crossbar(self)
+        self.pawn_shop = PawnShopMenu(self)
 
     #updates everything that needs updating
     def update(self):
@@ -3057,6 +3165,8 @@ class Game:
 
         self.text_box.draw()
         self.object_renderer.draw_npc_talker()
+
+        self.pawn_shop.draw()
 
         #debugin thingy
         self.map.draw()
@@ -3096,6 +3206,10 @@ class Game:
                 self.weapon_system.call_event(event)
             if event.type == pg.KEYUP:
                 self.keys[event.key] = False
+
+            if event.type == pg.MOUSEBUTTONDOWN:
+                self.pawn_shop.check_slot_click()
+
             self.player.single_fire_event(event)
 
     #main run loop
