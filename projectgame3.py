@@ -2771,6 +2771,7 @@ class PawnShopMenu:
         self.smallfont = pg.font.Font(None, 40)
 
         self.price_counter = self.font.render("0$", False, (0, 0, 0))
+        self.sell_array = [] #cansell bool, price to get
 
         self.counter_surf = pg.Surface((60, 60))
 
@@ -2785,9 +2786,22 @@ class PawnShopMenu:
         self.buttons.append(MenuButton(self, (1060, 420), 30, 40, ">", self.plus_one))
         self.buttons.append(MenuButton(self, (960, 420), 30, 40, "<", self.minus_one))
 
+        self.buttons.append(MenuButton(self, (975, 525), 100, 50, "Sell", self.sell_button))
+
         self.set_showing(False)
         self.redraw_counter()
         self.show_images(False)
+
+    def sell_button(self):
+        if self.sell_array[0]:
+            self.game.inventory_system.remove_item(self.item_list[self.selected_slot.id], self.counter)
+            self.game.inventory_system.add_item(self.game.inventory_system.get_item_by_id(2), self.sell_array[1])
+            self.selected_slot.lighten_slot()
+            self.selected_slot = None
+            self.counter = 0
+            self.update_counter()
+            self.show_images(False, closeX=False)
+            return
 
     def close_shop(self):
         self.set_showing(False)
@@ -2810,9 +2824,11 @@ class PawnShopMenu:
             tprice = self.counter * PAWN_PRICES[item.id]
         except KeyError:
             self.price_counter = self.smallfont.render("CAN'T SELL", False, (255, 255, 255))
+            self.sell_array = [False]
             return
 
         self.price_counter = self.font.render(str(tprice) + "$", False, (0, 0, 0))
+        self.sell_array = [True, tprice]
 
     def update_counter(self):
         if self.selected_slot == None:
@@ -2827,6 +2843,8 @@ class PawnShopMenu:
             self.counter = 1
 
         self.redraw_counter()
+
+        self.buttons[-1].lock_color_change = not self.sell_array[0]
 
     def max_counter(self):
         self.counter += 99999
@@ -2881,7 +2899,7 @@ class PawnShopMenu:
             if self.show_counter:
                 self.screen.blit(self.counter_surf, (995, 415))
                 if self.price_counter != None:
-                    self.screen.blit(self.price_counter, (995, 485))
+                    self.screen.blit(self.price_counter, (960, 485))
 
             [but.update() for but in self.buttons]
             [but.draw() for but in self.buttons]
@@ -3122,6 +3140,8 @@ class MenuButton:
 
         self.hidden = False
 
+        self.lock_color_change = False
+
         self.draw_button()
 
     def draw_button(self):
@@ -3130,6 +3150,9 @@ class MenuButton:
         self.surf.blit(self.button_txt, (self.width//2 - self.button_txt.get_width()//2, self.height//2 - self.button_txt.get_height()//2))
 
     def change_bright(self, mouseOver): #true/false changes brightness
+        if self.lock_color_change:
+            return
+
         if mouseOver:
             self.mouse_over = True
             self.current_color = (255, 255, 255)

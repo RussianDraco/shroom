@@ -70,9 +70,7 @@
             "passive": [
             ],
             "pickups": [
-                [[3.5, 3.5], "ammo", "resources/sprites/static/onionbag.png", 5, 0.25, 1.6, ""],
-                [[5.5, 2.5], "item", null, 2, 0.25, 1.6, 2],
-                [[6.5, 6.5], "item", "resources/sprites/items/stomachmedicine.png", 1, 0.25, 1.6, 1]
+                [[3.5, 3.5], "ammo", "resources/sprites/static/onionbag.png", 5, 0.25, 1.6, ""]
             ]
         }
     },
