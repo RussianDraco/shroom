@@ -2850,7 +2850,7 @@ class PawnShopMenu:
 
     def set_showing(self, shw):
         self.showing = shw
-        self.show_images(shw)
+        self.show_images(False, closeX=False)
 
     def show_images(self, shw, closeX = True):
         self.show_counter = shw
