@@ -127,16 +127,33 @@ class Stats: #just a class to store npc stats
         self.attack_damage = attack_dmg
         self.accuracy = accuracy
 
+##ITEMS##
+class Item:
+    def __init__(self, name, icon, id, desc=""):
+        self.id = id
+        self.name = name
+        self.desc = desc
+        self.icon = icon
+
+#contains all the possible items
+ITEM_DICT = {
+    1 : Item("Stomach Medicine", 'resources/sprites/items/stomachmedicine.png', 1, "the greatest stomach cleanser in the world, even a hellish one"),
+    2 : Item("Demon Tears", 'resources/sprites/items/demontear.png', 2, "keep crying demons"),
+    3 : Item("Calculator", 'resources/sprites/items/calculator.png', 3, ""),
+    4 : Item("Shadow Cloak", 'resources/sprites/items/cloak.png', 4, ""),
+    5 : Item("Gem", 'resources/sprites/items/gem.png', 5, ""),
+    6 : Item("Spell", 'resources/sprites/items/spell.png', 6, "")
+}
+
 #enemy drop system
 #how drops array works:
 #[
 # [
 #  item id,
 #  drop chance 0-100, the higher number -> the higher chance of getting it
-#  number of drops: an array of min-max
+#  number of drops: an array of min-max ||OR|| single integer for the number of drops
 # ]
 #]
-
 
 #dict describing all the enemies
 ENEMIES = {
@@ -166,7 +183,10 @@ ENEMIES = {
             health = 200,
             attack_dmg = 20,
             accuracy = 0.5
-        )
+        ),
+        "drops": [
+            [3, 40, 1]
+        ]
     },
     "gemdemon": {
         "path" : 'resources/sprites/npc/gemdemon/0.png',
@@ -182,7 +202,7 @@ ENEMIES = {
             accuracy = 0.6
         ),
         "drops": [
-            [2, 50, [1, 3]]
+            [5, 33, 1]
         ]
     },
     "tridemon": {
@@ -214,7 +234,10 @@ ENEMIES = {
             health = 150,
             attack_dmg = 12,
             accuracy = 0.8
-        )
+        ),
+        "drops": [
+            [6, 20, [1, 2]]
+        ]
     },
     "shadowslinger": {
         "path": 'resources/sprites/npc/shadowslinger/0.png',
@@ -230,11 +253,19 @@ ENEMIES = {
             accuracy = 0.9
         ),
         "drops": [
-            [2, 50, [1, 3]]
+            [2, 50, [1, 3]],
+            [4, 50, [1, 2]]
         ]
     }
 }
 
+#item id : price
+PAWN_PRICES = {
+    3 : 1,
+    4 : 1,
+    5 : 3,
+    6 : 2
+}
 
 ###PLAYER###
 
@@ -484,19 +515,6 @@ class Player:
 ###INVENTORY###
 
 
-class Item:
-    def __init__(self, name, icon, id, desc=""):
-        self.id = id
-        self.name = name
-        self.desc = desc
-        self.icon = icon
-
-#contains all the possible items
-ITEM_DICT = {
-    1 : Item("Stomach Medicine", 'resources/sprites/items/stomachmedicine.png', 1, "the greatest stomach cleanser in the world, even a hellish one"),
-    2 : Item("Demon Tears", 'resources/sprites/items/demontear.png', 2, "keep crying demons")
-}
-
 class InventorySystem:
     def __init__(self, game):
         self.game = game
@@ -505,7 +523,7 @@ class InventorySystem:
     #get an item class by its id
     def get_item_by_id(self, id):
         return ITEM_DICT[id]
-    
+
     #get an item class by its name
     def get_item_by_name(self, name):
         for itm in ITEM_DICT:
@@ -2284,8 +2302,12 @@ class NPC(AnimatedSprite):
             if not self.drops == None:
                 for drp_ar in self.drops:
                     if randint(1, 100) >= (101 - drp_ar[1]):
-                        #self, game, pos, type, path=None, number=1, scale=0.25, shift=1.6, subtype = ""
-                        self.game.object_handler.add_pickup(Pickup(self.game, (self.x, self.y), 'item', number = randint(drp_ar[2][0], drp_ar[2][1]), subtype = drp_ar[0]))
+                        if type(drp_ar[2]) == type(1):
+                            drp_num = drp_ar[2]
+                        else:
+                            drp_num = randint(drp_ar[2][0], drp_ar[2][1])
+
+                        self.game.object_handler.add_pickup(Pickup(self.game, (self.x, self.y), 'item', number = drp_num, subtype = drp_ar[0]))
 
             self.alive = False
             #self.game.sound.npc_death.play()
@@ -2498,6 +2520,10 @@ class InventoryIcon:
 
         return self.draw()
 
+    def lighten_slot(self):
+        if self.from_pawn_shop:
+            self.darken = False
+
     def darken_slot(self):
         if self.from_pawn_shop:
             self.darken = True
@@ -2523,7 +2549,7 @@ class InventoryIcon:
 
         if self.from_pawn_shop:
             if self.darken:
-                s = pg.Surface(SLOT_SIZE); s.set_alpha(64); s.fill((0, 0, 0))
+                s = pg.Surface(SLOT_SIZE); s.set_alpha(128); s.fill((0, 0, 0))
                 my_surface.blit(s, (0,0))
 
         #return a finished icon surface
@@ -2536,8 +2562,6 @@ class InventoryIcon:
     
         if (self.posx <= mx <= self.posx + SLOT_X) and (self.posy <= my <= self.posy + SLOT_Y):
             self.game.pawn_shop.slot_clicked(self)
-        else:
-            self.darken = False
 
 QUEST_RES = QUEST_X, QUEST_Y = 270, 100
 
@@ -2709,8 +2733,99 @@ class PawnShopMenu:
 
         self.selected_slot = None
 
+        self.mouseX, self.mouseY = 0, 0
+
+        self.screen = self.game.screen
+
+        self.show_counter = True
+
+        self.counter = 0
+
+        self.font = pg.font.Font(None, 60)
+        self.smallfont = pg.font.Font(None, 40)
+
+        self.price_counter = self.font.render("0$", False, (0, 0, 0))
+
+        self.counter_surf = pg.Surface((60, 60))
+
+        self.buttons = []
+        self.buttons.append(MenuButton(self, (975, 160), 100, 50, "5", self.plus_five))
+        self.buttons.append(MenuButton(self, (975, 215), 100, 50, "10", self.plus_ten))
+        self.buttons.append(MenuButton(self, (975, 270), 100, 50, "All", self.max_counter))
+
+        self.buttons.append(MenuButton(self, (1060, 420), 30, 40, ">", self.plus_one))
+        self.buttons.append(MenuButton(self, (960, 420), 30, 40, "<", self.minus_one))
+
+        self.set_showing(True)
+        self.redraw_counter()
+        self.show_images(False)
+
+    def redraw_counter(self):
+        self.counter_surf.fill('black')
+        pg.draw.rect(self.counter_surf, 'lightgray', (3, 3, 54, 54))
+        count_txt = self.font.render(str(self.counter), False, (0, 0, 0))
+        self.counter_surf.blit(count_txt, (60//2 - count_txt.get_width()//2, 60//2 - count_txt.get_height()//2))
+
+        if self.selected_slot == None:
+            self.price_counter = None
+            return
+
+        item = self.item_list[self.selected_slot.id]
+
+        try:
+            tprice = self.counter * PAWN_PRICES[item.id]
+        except KeyError:
+            self.price_counter = self.smallfont.render("CAN'T SELL", False, (255, 255, 255))
+            return
+
+        self.price_counter = self.font.render(str(tprice) + "$", False, (0, 0, 0))
+
+    def update_counter(self):
+        if self.selected_slot == None:
+            self.counter = 0
+            self.redraw_counter()
+            return
+
+        maxquan = self.game.inventory_system.inventory[self.item_list[self.selected_slot.id]] #gets the id from the selected slot, gets the item of that slot, gets the quantity from the inventory using the slot item
+        if self.counter > maxquan:
+            self.counter = maxquan
+        if self.counter < 1:
+            self.counter = 1
+
+        self.redraw_counter()
+
+    def max_counter(self):
+        self.counter += 99999
+        self.update_counter()
+
+    def plus_ten(self):
+        self.counter += 10
+        self.update_counter()
+
+    def plus_five(self):
+        self.counter += 5
+        self.update_counter()
+
+    def minus_one(self):
+        self.counter -= 1
+        self.update_counter()
+
+    def plus_one(self):
+        self.counter += 1
+        self.update_counter()
+
     def set_showing(self, shw):
         self.showing = shw
+        self.show_images(shw)
+
+    def show_images(self, shw):
+        self.show_counter = shw
+        [but.changeHidden(not shw) for but in self.buttons]
+
+    def update_mouse(self):
+        self.mouseX, self.mouseY = pg.mouse.get_pos()
+        self.mouseX *= RatioWidth
+        self.mouseY *= RatioHeight * 1.22
 
     def draw(self):
         if self.showing:
@@ -2720,9 +2835,17 @@ class PawnShopMenu:
 
             self.inven_surface.set_alpha(240)
 
+            self.update_mouse()
+
             self.draw_inventory()
 
-            self.check_slot_click()
+            if self.show_counter:
+                self.screen.blit(self.counter_surf, (995, 415))
+                if self.price_counter != None:
+                    self.screen.blit(self.price_counter, (995, 485))
+
+            [but.update() for but in self.buttons]
+            [but.draw() for but in self.buttons]
 
             self.screen.blit(self.inven_surface, (350, 150))
 
@@ -2756,23 +2879,34 @@ class PawnShopMenu:
 
             self.inven_surface.blit(slot, (x, y))
 
-            icon.set_pos(x, y)
+            icon.set_pos(x + 350, y + 150) #adding 350 and 150 from "self.screen.blit(self.inven_surface, (350, 150))" because x and y is mesured relative to the inventory, adding padding makes it relative to the whole screen
 
             pos+=1
 
     def slot_clicked(self, slot):
-        self.selected_slot = slot
-        slot.darken_slot()
+        if self.selected_slot == slot:
+            slot.lighten_slot()
+            self.selected_slot = None
+            self.counter = 0
+            self.update_counter()
+            self.show_images(False)
+            return
+        elif self.selected_slot != slot and self.selected_slot != None:
+            self.selected_slot.lighten_slot()
+            self.selected_slot = slot
+            self.selected_slot.darken_slot()
+        elif self.selected_slot != slot and self.selected_slot == None:
+            self.selected_slot = slot
+            slot.darken_slot()
+        self.update_counter()
+        self.show_images(True)
 
     def check_slot_click(self):
         if not self.showing:
             return
 
-        mouseX, mouseY = pg.mouse.get_pos()
-        mouseX *= RatioWidth
-        mouseY *= RatioHeight * 1.22
-
-        [i.check_mouse_click(mouseX, mouseY) for i in self.inventory_icons]
+        [i.check_mouse_click(self.mouseX, self.mouseY) for i in self.inventory_icons]
+        [but.mouseClick() for but in self.buttons]
 
 
 ###POPUP MESSAGE###
@@ -2955,8 +3089,6 @@ class MenuButton:
         self.surf.fill('black')
         pg.draw.rect(self.surf, self.current_color, (0, 0, self.width, self.height), border_radius=5)
         self.surf.blit(self.button_txt, (self.width//2 - self.button_txt.get_width()//2, self.height//2 - self.button_txt.get_height()//2))
-        
-        
 
     def change_bright(self, mouseOver): #true/false changes brightness
         if mouseOver:
