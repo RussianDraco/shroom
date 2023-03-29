@@ -1672,6 +1672,20 @@ class BasicPassiveNPC(SpriteObject):
 
         self.nextlinequery = []
 
+        self.dont_show_textbox = None #var to not show textbox after special_check()
+
+    #SPECIAL FUNCTION#
+    def close_pawn_shop(self):
+        if not self.special_tag == None:
+            self.game.quest_manager.quest_watch(self)
+        if len(self.nextlinequery) == 0:
+            self.game.text_box.display_text(self.myline, self.pitch, call_source=self)
+        else:
+            self.game.text_box.display_text(self.nextlinequery[0], self.pitch, call_source=self); self.nextlinequery.pop(0)
+        self.dont_show_textbox = None
+    #/SPECIAL FUNCTIONS#
+
+
     def player_in_range(self):
         sx, sy = self.pos
         px, py = self.game.player.map_pos
@@ -1683,6 +1697,10 @@ class BasicPassiveNPC(SpriteObject):
         if self.player_in_range() and self.interact_enabled:
             if event.key == pg.K_e and not self.game.text_box.showing and self.game.text_box.time_limit_done() and self.use_textbox and not self.game.display_menu.showing: #maybe add a self.screen_x req so that you cant talk to people behind you
                 self.special_check()
+
+                if self.dont_show_textbox == True:
+                    return
+
                 if not self.special_tag == None:
                     self.game.quest_manager.quest_watch(self)
                 if len(self.nextlinequery) == 0:
@@ -1766,6 +1784,14 @@ class BasicPassiveNPC(SpriteObject):
                         self.nextlinequery.append("You'll need more than that, its 4 demon tears for some good ol' armor")
                 else:
                     self.nextlinequery.append("You seem pretty equiped with that armor, you don't need it right now")
+            elif self.special_tag == "pawndonkey":
+                if len(self.game.inventory_system.inventory) == 0:
+                    self.nextlinequery.append("I'm the local pawner donkey, you don't have anything right now but if you ever collect some goodies, come and sell them to me!")
+                else:
+                    self.game.player.canMove = False
+                    self.dont_show_textbox = True
+                    self.game.pawn_shop.set_showing(True)
+                    self.nextlinequery.append("Thanks for shopping!")
 
     def add_next_line(self, line):
         self.nextlinequery.append(line)
@@ -2749,6 +2775,9 @@ class PawnShopMenu:
         self.counter_surf = pg.Surface((60, 60))
 
         self.buttons = []
+
+        self.buttons.append(MenuButton(self, (1500, 50), 50, 50, "X", self.close_shop))
+
         self.buttons.append(MenuButton(self, (975, 160), 100, 50, "5", self.plus_five))
         self.buttons.append(MenuButton(self, (975, 215), 100, 50, "10", self.plus_ten))
         self.buttons.append(MenuButton(self, (975, 270), 100, 50, "All", self.max_counter))
@@ -2756,9 +2785,14 @@ class PawnShopMenu:
         self.buttons.append(MenuButton(self, (1060, 420), 30, 40, ">", self.plus_one))
         self.buttons.append(MenuButton(self, (960, 420), 30, 40, "<", self.minus_one))
 
-        self.set_showing(True)
+        self.set_showing(False)
         self.redraw_counter()
         self.show_images(False)
+
+    def close_shop(self):
+        self.set_showing(False)
+
+        self.game.object_handler.get_special_passive("pawndonkey").close_pawn_shop()
 
     def redraw_counter(self):
         self.counter_surf.fill('black')
@@ -2818,9 +2852,14 @@ class PawnShopMenu:
         self.showing = shw
         self.show_images(shw)
 
-    def show_images(self, shw):
+    def show_images(self, shw, closeX = True):
         self.show_counter = shw
         [but.changeHidden(not shw) for but in self.buttons]
+
+        if not closeX:
+            for but in self.buttons:
+                if but.functionToCall == self.close_shop:
+                    but.changeHidden(False)
 
     def update_mouse(self):
         self.mouseX, self.mouseY = pg.mouse.get_pos()
@@ -2889,7 +2928,7 @@ class PawnShopMenu:
             self.selected_slot = None
             self.counter = 0
             self.update_counter()
-            self.show_images(False)
+            self.show_images(False, closeX=False)
             return
         elif self.selected_slot != slot and self.selected_slot != None:
             self.selected_slot.lighten_slot()
