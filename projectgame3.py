@@ -117,6 +117,9 @@ HALF_TEXTURE_SIZE = TEXTURE_SIZE // 2
 #icon vars
 ICON_WIDTH, ICON_HEIGHT = 80, 80
 
+#changeable settings
+MouseRotation_Setting = False
+
 #stats class for enemy npcs
 class Stats: #just a class to store npc stats
     def __init__(self, attack_dist, speed, size, health, attack_dmg, accuracy):
@@ -466,13 +469,13 @@ class Player:
         #self.rel is used for rendering the sky
 
         #turning with arrows
-        if keys[pg.K_LEFT]:
-            self.angle -= PLAYER_ROT_SPEED * self.game.delta_time
-        if keys[pg.K_RIGHT]:
-            self.angle += PLAYER_ROT_SPEED * self.game.delta_time
-        self.angle %= math.tau
-        self.rel = self.angle * 5.1
-
+        if not MouseRotation_Setting:
+            if keys[pg.K_LEFT]:
+                self.angle -= PLAYER_ROT_SPEED * self.game.delta_time
+            if keys[pg.K_RIGHT]:
+                self.angle += PLAYER_ROT_SPEED * self.game.delta_time
+            self.angle %= math.tau
+            self.rel = self.angle * 5.1
 
     #function for checking if pos is wall
     def check_wall(self, x, y):
@@ -505,14 +508,19 @@ class Player:
 
         pg.draw.polygon(self.game.screen, (255, 20, 20), [points[0], points[1], points[2]])
 
-    #function for looking around with mouse (not used)
+    #function for looking around with mouse
     def mouse_control(self):
+        if not self.canMove or self.inventoryOpen:
+            self.rel = 0
+            return
+
         mx, my = pg.mouse.get_pos()
         if mx < MOUSE_BORDER_LEFT or mx > MOUSE_BORDER_RIGHT:
             pg.mouse.set_pos([HALF_WIDTH, HALF_HEIGHT])
         self.rel = pg.mouse.get_rel()[0]
         self.rel = max(-MOUSE_MAX_REL, min(MOUSE_MAX_REL, self.rel))
-        self.angle += self.rel * MOUSE_SENSITIVITY * self.game.delta_time
+        self.angle += self.rel * MOUSE_SENSITIVITY/2 * self.game.delta_time
+        self.angle %= math.tau
 
     #increases gas recharge
     def gasRecharge(self):
@@ -527,7 +535,9 @@ class Player:
         self.gasRecharge()
         self.movement()
         self.recover_health()
-        #self.mouse_control()
+
+        if MouseRotation_Setting:
+            self.mouse_control()
 
     #check position
     @property #as i understand, this provides an easier way to retrieve class properties
@@ -999,7 +1009,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 3
+        self.current_level = 1
         self.inBase = True
 
         self.generator = MazeGenerator()
@@ -1493,7 +1503,11 @@ class ObjectRenderer:
 
     #draw sky and floor, not currently used
     def draw_background(self):
-        self.sky_offset = (100 * self.game.player.rel) % WIDTH
+        if not MouseRotation_Setting:
+            self.sky_offset = (100 * self.game.player.rel) % WIDTH
+        else:
+            self.sky_offset = (self.sky_offset + 4.5 * self.game.player.rel) % WIDTH
+
         self.screen.fill('black')
         
         self.screen.blit(self.sky_image, (-self.sky_offset, 0))
@@ -2728,6 +2742,10 @@ class DisplayMenu:
     def event_call(self, event):
         if event.key == pg.K_TAB and not self.game.text_box.showing:
             self.showing = not self.showing
+            if self.showing:
+                pg.mouse.set_visible(True)
+            else:
+                pg.mouse.set_visible(False)
 
     def draw_quests(self):
         quest_surface = pg.Surface((int(QUEST_X * 1.5), DISPLAY_Y))
@@ -2866,7 +2884,7 @@ class PawnShopMenu:
 
     def close_shop(self):
         self.set_showing(False)
-
+        pg.mouse.set_visible(False)
         self.game.object_handler.get_special_passive("pawndonkey").close_pawn_shop()
 
     def redraw_counter(self):
@@ -2928,6 +2946,9 @@ class PawnShopMenu:
         self.update_counter()
 
     def set_showing(self, shw):
+        if shw:
+            pg.mouse.set_visible(True)
+
         self.showing = shw
         self.show_images(False, closeX=False)
 
@@ -3184,7 +3205,7 @@ class Lore:
 
 
 class MenuButton:
-    def __init__(self, menu, pos, width, height, text, functionToCall):
+    def __init__(self, menu, pos, width, height, text, functionToCall, tag = None):
         self.menu = menu
         self.pos = pos; self.posx, self.posy = pos
         self.width = width
@@ -3202,6 +3223,8 @@ class MenuButton:
         self.hidden = False
 
         self.lock_color_change = False
+
+        self.tag = tag
 
         self.draw_button()
 
@@ -3251,6 +3274,7 @@ class StartMenu:
         self.mouseX, self.mouseY = pg.mouse.get_pos()
         self.buttons = []
         self.inCredits = False
+        self.inOptions = False
         self.credits = pg.image.load('resources/sprites/credits.png')
 
     def update(self):
@@ -3264,13 +3288,22 @@ class StartMenu:
                 return but
 
     def run(self):
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 300), 150, 75, "Play", self.play_button))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 100, 400), 200, 75, "Credits", self.credits_button))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 125, 500), 250, 75, "View Lore", self.play_lore))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 95, 600), 190, 75, "Options", self.options_button))
         self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 700), 150, 75, "Exit", self.exit_button))
-        self.buttons.append(MenuButton(self, (HALF_WIDTH - 100, 500), 200, 75, "Credits", self.credits_button))
+
         self.buttons.append(MenuButton(self, (1300, 75), 50, 50, "X", self.X_credits_button))
-        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 400), 150, 75, "Play", self.play_button))
-        self.buttons.append(MenuButton(self, (HALF_WIDTH - 125, 600), 250, 75, "View Lore", self.play_lore))
+        self.buttons.append(MenuButton(self, (1300, 75), 50, 50, "X", self.X_options_button))
+
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 300), 200, 75, "Mouse Turning", self.mouse_turning, tag="options"))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 400), 200, 75, "Key Turning", self.key_turning, tag="options"))
 
         self.get_button(self.X_credits_button).changeHidden(True)
+        self.get_button(self.X_options_button).changeHidden(True)
+
+        [but.changeHidden(True) for but in self.buttons if but.tag == "options"]
 
         while self.in_menu:
             if self.inCredits:
@@ -3279,6 +3312,25 @@ class StartMenu:
                 self.get_button(self.X_credits_button).update(); self.get_button(self.X_credits_button).draw()
     
                 self.click_checks()
+
+                transcreen = pg.transform.scale(self.screen, ACTUALRES)
+                self.mainscreen.blit(transcreen, (0, 0))
+
+                pg.display.flip()
+                continue
+
+            elif self.inOptions:
+                self.update()
+
+                self.get_button(self.X_options_button).update(); self.get_button(self.X_options_button).draw()
+                [but.update() for but in self.buttons if but.tag == "options"]
+                [but.draw() for but in self.buttons if but.tag == "options"]
+
+                self.click_checks()
+
+                transcreen = pg.transform.scale(self.screen, ACTUALRES)
+                self.mainscreen.blit(transcreen, (0, 0))
+
                 pg.display.flip()
                 continue
 
@@ -3292,6 +3344,14 @@ class StartMenu:
 
             pg.display.flip()
             
+    def mouse_turning(self):
+        global MouseRotation_Setting
+        MouseRotation_Setting = True
+
+    def key_turning(self):
+        global MouseRotation_Setting
+        MouseRotation_Setting = False
+
     def click_checks(self):
         for event in pg.event.get():
             if event.type == pg.MOUSEBUTTONDOWN:
@@ -3308,12 +3368,41 @@ class StartMenu:
     def play_button(self):
         self.in_menu = False
         
+    def options_button(self):
+        self.screen.fill('black')
+
+        self.inOptions = True
+        [but.changeHidden(True) for but in self.buttons]
+        [but.changeHidden(False) for but in self.buttons if but.tag == "options" and not but.functionToCall == self.X_credits_button]
+
+        self.get_button(self.X_options_button).changeHidden(False)
+
+        [but.update() for but in self.buttons]
+        [but.draw() for but in self.buttons]
+
+        pg.display.flip()
+
     def credits_button(self):
         self.screen.fill('black')
 
         self.inCredits = True
         [but.changeHidden(True) for but in self.buttons]
+
         self.get_button(self.X_credits_button).changeHidden(False)
+
+        [but.update() for but in self.buttons]
+        [but.draw() for but in self.buttons]
+
+        pg.display.flip()
+
+    def X_options_button(self):
+        self.screen.fill('black')
+
+        self.inOptions = False
+        [but.changeHidden(False) for but in self.buttons if but.functionToCall != self.X_credits_button]
+        [but.changeHidden(True) for but in self.buttons if but.tag == "options"]
+
+        self.get_button(self.X_options_button).changeHidden(True)
 
         [but.update() for but in self.buttons]
         [but.draw() for but in self.buttons]
@@ -3324,7 +3413,7 @@ class StartMenu:
         self.screen.fill('black')
 
         self.inCredits = False
-        [but.changeHidden(False) for but in self.buttons]
+        [but.changeHidden(False) for but in self.buttons if not but.functionToCall == self.X_options_button and not but.tag == "options"]
         self.get_button(self.X_credits_button).changeHidden(True)
 
         [but.update() for but in self.buttons]
@@ -3345,6 +3434,9 @@ class Game:
         self.clock = pg.time.Clock()
         self.delta_time = 1
         
+        if MouseRotation_Setting:
+            pg.mouse.set_visible(False)
+
         #event for animation i think
         self.global_trigger = False
         self.global_event = pg.USEREVENT + 0
