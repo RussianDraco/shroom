@@ -256,6 +256,34 @@ ENEMIES = {
             [2, 50, [1, 3]],
             [4, 50, [1, 2]]
         ]
+    },
+    "hut": {
+        "path": 'resources/sprites/npc/hut/0.png',
+        "scale": 2.5,
+        "shift": -0.15,
+        "animation_time": 75,
+        "stats": Stats(
+            attack_dist = 25.0,
+            speed = 0.01,
+            size = 2.5,
+            health = 1000,
+            attack_dmg = 15,
+            accuracy = 0.75
+        )
+    },
+    "bucket": {
+        "path": 'resources/sprites/npc/bucket/0.png',
+        "scale": 0.75,
+        "shift": -0.3,
+        "animation_time": 100,
+        "stats": Stats(
+            attack_dist = 1,
+            speed = 0.1,
+            size = 0.75,
+            health = 75,
+            attack_dmg = 5,
+            accuracy = 0.65
+        )
     }
 }
 
@@ -2290,8 +2318,25 @@ class NPC(AnimatedSprite):
 
     #attack player, lower health
     def attack(self):
+        def generate_spawn_position():
+            x_, y_ = self.x + uniform(-0.5, 0.5), self.y + uniform(-0.5, 0.5)
+            cx_, cy_ = int(x_), int(y_)
+
+            if not self.check_wall(cx_, cy_):
+                while self.check_wall(cx_, cy_):
+                    x_, y_ = x_ + uniform(-1.0, 1.0), y_ + uniform(-1.0, 1.0)
+                    cx_, cy_ = int(x_), int(y_)
+
+            return (x_, y_)
+
         if self.animation_trigger:
             #self.game.sound.npc_shot.play()
+            if 'hut' in self.path:
+                bucket_data = ENEMIES["bucket"]
+                for x in range(randint(1, 3)):
+                    self.game.object_handler.add_npc(NPC(self.game, bucket_data["path"], generate_spawn_position(), bucket_data["scale"], bucket_data["shift"], bucket_data["animation_time"], bucket_data["stats"], none_get(bucket_data, "drops")))
+                return
+
             if random() < self.accuracy:
                 self.game.player.get_damage(self.attack_damage)
 
@@ -2471,6 +2516,10 @@ class PathFinding:
     def get_path(self, start, goal):
         #creates collection of already visited squares
         self.visited = self.bfs(start, goal, self.graph)
+
+        if self.visited == None:
+            return start
+
         path = [goal]
         step = self.visited.get(goal, start)
 
@@ -2489,7 +2538,11 @@ class PathFinding:
             cur_node = queue.popleft()
             if cur_node == goal:
                 break
-            next_nodes = graph[cur_node]
+
+            try:
+                next_nodes = graph[cur_node]
+            except KeyError:
+                return None
 
             for next_node in next_nodes:
                 if next_node not in visited and next_node not in self.game.object_handler.npc_positions:

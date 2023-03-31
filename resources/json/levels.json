@@ -23,7 +23,8 @@
         "spawn": [1.5, 1.5],
         "spawns": {
             "npc": [
-                ["tridemon", [5.5, 1.5]]
+                ["tridemon", [5.5, 1.5]],
+                ["hut", [10.5, 11.5]]
             ],
             "passive": [
             ],

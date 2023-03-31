@@ -249,6 +249,8 @@ class Map:
                 return (41, 150, 16)
             elif val == "satansnovel":
                 return (106, 55, 15)
+            elif val == "hut":
+                return (70, 51, 32)
             else:
                 return 'red'
 
@@ -356,6 +358,9 @@ class ValueSelector:
     def zombie(self):
         self.map.change_Eselect("zombie")
 
+    def hut(self):
+        self.map.change_Eselect("hut")
+
     #for ease of work, spawn is an enemy that just has different consideration factors
     def spawn(self):
         self.map.change_Eselect("spawn")
@@ -411,6 +416,7 @@ class MainEditor:
         self.buttons.append(MenuButton(self, (215, 820), 60, 60, "S", self.value_selector.shadowslinger, colors=[(58, 9, 65), (112, 18, 125)]))
         self.buttons.append(MenuButton(self, (280, 820), 60, 60, "Z", self.value_selector.zombie, colors=[(21, 67, 10), (41, 150, 16)]))
         self.buttons.append(MenuButton(self, (345, 820), 60, 60, "B", self.value_selector.satansnovel, colors=[(65, 34, 10), (106, 55, 15)]))
+        self.buttons.append(MenuButton(self, (410, 820), 60, 60, "H", self.value_selector.hut, colors=[(70, 51, 32), (136, 91, 45)]))
 
     def update(self):
         self.screen.fill('black')
