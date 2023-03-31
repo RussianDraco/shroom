@@ -2542,6 +2542,7 @@ class PathFinding:
             try:
                 next_nodes = graph[cur_node]
             except KeyError:
+                print("WARNING: There has been a keyerror in pathfinding, KEYERROR conjured by: " + str(cur_node))
                 return None
 
             for next_node in next_nodes:
@@ -3442,7 +3443,7 @@ class Game:
                 self.object_renderer.next_portal_frame()
 
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
+                if event.key == pg.K_F4:
                     pg.quit()
                     sys.exit()
                 else:
