@@ -999,7 +999,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 1
+        self.current_level = 3
         self.inBase = True
 
         self.generator = MazeGenerator()
@@ -2226,7 +2226,7 @@ class SoundPlayer:
 
 #non player character class, manages its npc's interaction/movement/work and its graphics
 class NPC(AnimatedSprite):
-    def __init__(self, game, path='resources/sprites/npc/basic/0.png', pos=(10.5, 5.5), scale = 0.6, shift = 0.38, animation_time=180, stats = None, drops = None): #stats is an optional stats class that defines the enemy's stats
+    def __init__(self, game, path='resources/sprites/npc/basic/0.png', pos=(10.5, 5.5), scale = 0.6, shift = 0.38, animation_time=180, stats = None, drops = None, life_bond = None): #stats is an optional stats class that defines the enemy's stats
         super().__init__(game, path, pos, scale, shift, animation_time)
 
         #get list of lists of all attack anims
@@ -2274,6 +2274,8 @@ class NPC(AnimatedSprite):
         self.player_search_trigger = False
 
         self.drops = drops
+
+        self.bond_npc = None if life_bond == None else life_bond
 
     def get_damaged(self, dmg):
         self.health -= dmg
@@ -2334,7 +2336,7 @@ class NPC(AnimatedSprite):
             if 'hut' in self.path:
                 bucket_data = ENEMIES["bucket"]
                 for x in range(randint(1, 3)):
-                    self.game.object_handler.add_npc(NPC(self.game, bucket_data["path"], generate_spawn_position(), bucket_data["scale"], bucket_data["shift"], bucket_data["animation_time"], bucket_data["stats"], none_get(bucket_data, "drops")))
+                    self.game.object_handler.add_npc(NPC(self.game, bucket_data["path"], generate_spawn_position(), bucket_data["scale"], bucket_data["shift"], bucket_data["animation_time"], bucket_data["stats"], none_get(bucket_data, "drops"), life_bond=self))
                 return
 
             if random() < self.accuracy:
@@ -2398,8 +2400,13 @@ class NPC(AnimatedSprite):
     #main logic runner for npc
     def run_logic(self):
         if self.alive:
+            if self.bond_npc != None:
+                if self.bond_npc.alive == False or self.bond_npc.health < 1 or self.bond_npc == None:
+                    self.health = 0
+                    self.check_health()
+
             #check if there is a clear line of sight between player and npc
-            self.ray_cast_value = self.ray_cast_player_npc()
+            self.ray_cast_value = self.ray_cast_player_npc() 
             self.check_hit_in_npc()
             if self.pain:
                 self.animate_pain()
