@@ -415,7 +415,7 @@ class Player:
                 self.game.sound.shotgun.play()
                 self.shot = True
                 self.game.weapon.reloading = True
-                self.ammo -= 1
+                self.ammo -= self.game.weapon_system.get_ammo_usage()
                 self.checkWeaponShow()
 
             elif event.key == pg.K_g and (self.gasCharge >= GAS_RECHARGE - 1) and self.canGas:
@@ -481,7 +481,11 @@ class Player:
 
     #function for checking if pos is wall
     def check_wall(self, x, y):
-        return (x, y) not in self.game.map.world_map and not (x, y) in ALL_EMPTY_COLLIDER
+        #for now empty colliders(bloated goblin) only work in base
+        if self.game.map.inBase:
+            return (x, y) not in self.game.map.world_map and not (x, y) in ALL_EMPTY_COLLIDER
+        else:
+            return (x, y) not in self.game.map.world_map
     
     #check if potential movement goes into wall
     def check_wall_collision(self, dx, dy):
@@ -636,7 +640,7 @@ class Quest:
         self.id = id
 
 QUEST_DICT = {
-    1 : Quest("Get medicine", "get medicine for bloated goblin", "gather", 1, 1, 1, ['special', 'bloatedgoblin'], source_tag='bloatedgoblin', talk_to_finish=True, gather_remove=True)
+    1 : Quest("Get medicine", "Get medicine for bloated goblin", "gather", 1, 1, 1, ['special', 'bloatedgoblin'], source_tag='bloatedgoblin', talk_to_finish=True, gather_remove=True)
 }
 
 class QuestManager:
@@ -958,6 +962,17 @@ BASE_DATA = {
                 "shift": 0.27,
                 "special_tag": 'johny'
             },
+            {
+                "name": "Bloated Goblin",
+                "path": 'resources/sprites/passive/bellygoblin.png',
+                "pos": [14.5, 7.5],
+                "usetextbox": True,
+                "myline": "Ohhhh, yesterday I ate a- something I wasn't supposed, now I have a terrrrible stomach ache",
+                "pitch": "high",
+                "scale": 1.25,
+                "shift": 0.1,
+                "special_tag": 'bloatedgoblin'
+            },
             {"name":"Weapon Donkey","path":"resources/sprites/passive/weapondonkey.png","pos":[2.5,10.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"weapondonkey"},
             {"name":"Ammo Donkey","path":"resources/sprites/passive/ammodonkey.png","pos":[5.5,10.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"ammodonkey"},
             {"name":"Medic Donkey","path":"resources/sprites/passive/medicdonkey.png","pos":[2.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"medicdonkey"},
@@ -969,7 +984,6 @@ BASE_DATA = {
             #['resources/sprites/static/candlebra.png', [2.5, 2.5], 0.25, 1.4]
         ],
         "pickups": [
-            [[6.5, 6.5], 'item', 'resources/sprites/items/stomachmedicine.png', 1, 0.25, 1.6, 1],
             [[6.5, 5.5], 'ammo', 'resources/sprites/static/onionbag.png', 5, 0.5, 0.7, ""]
         ]
     }
@@ -990,7 +1004,7 @@ LEVEL_DATA = get_json('resources/json/levels.json')
 #   cough, cough, never mind the last three lines, idk if they actually apply because i kinda counted wrong when making the location for the empty collider square...
 
 # need to add all empty colliders here, if there is a coordinate here, it will not be able to be walked through, do not forget coordinates start from 1, y increases downwards, x increases to the right
-ALL_EMPTY_COLLIDER = []
+ALL_EMPTY_COLLIDER = [(14, 7)]
 
 #map class
 class Map:
@@ -2057,23 +2071,33 @@ class WeaponSystem:
         self.game = game
         #all weapons that exist
         self.weapons = [Weapon(self.game), 
-                        Weapon(self.game, 'resources/sprites/weapon/axe/0.png', scale = 2.5, animation_time = 60, damage = 75)]
+                        Weapon(self.game, 'resources/sprites/weapon/axe/0.png', scale = 2.5, animation_time = 60, damage = 75),
+                        Weapon(self.game, 'resources/sprites/weapon/crucifix/0.png', scale = 1.75, animation_time = 50, damage = 125),
+                        Weapon(self.game, 'resources/sprites/weapon/tower/0.png', scale = 1.75, animation_time = 50, damage = 175, ammo_usage=3)]
 
         self.weapon_store = {
                 1 : {
                     "name" : "Onion Axe",
                     "price" : 15
+                },
+                2 : {
+                    "name" : "Crucifix",
+                    "price" : 20
+                },
+                3 : {
+                    "name" : "Onion Tower",
+                    "price" : 30
                 }
             }
 
         #the weapons you have rn
-        self.my_weapons = [self.weapons[0]]
+        self.my_weapons = [self.weapons[0], self.weapons[1], self.weapons[2], self.weapons[3]]
         #weapon ids you own
-        self.weapon_ids = [0]
+        self.weapon_ids = [0, 1, 2, 3]
 
         self.currentWeapon = 0
 
-        self.change_weapon(0)
+        self.change_weapon(2)
 
     #should not get weapon 2 before weapon 1, only can buy last weapon +1
     def get_weapon(self, indx):
@@ -2096,11 +2120,18 @@ class WeaponSystem:
             self.change_weapon(0)
         elif event.key == pg.K_2:
             self.change_weapon(1)
+        elif event.key == pg.K_3:
+            self.change_weapon(2)
+        elif event.key == pg.K_4:
+            self.change_weapon(3)
+
+    def get_ammo_usage(self):
+        return self.my_weapons[self.currentWeapon].ammo_usage
 
 
 #weapon class, mostly manages visuals/weapon animations
 class Weapon(AnimatedSprite):
-    def __init__(self, game, path = 'resources/sprites/weapon/hand/0.png', scale = 1.75, animation_time = 50, damage = 50):
+    def __init__(self, game, path = 'resources/sprites/weapon/hand/0.png', scale = 1.75, animation_time = 50, damage = 50, ammo_usage = 1):
         super().__init__(game=game, path=path, scale=scale, animation_time=animation_time)
         self.images = deque(
             [pg.transform.smoothscale(img, (self.image.get_width() * scale, self.image.get_height() * scale)) for img in self.images])
@@ -2109,6 +2140,8 @@ class Weapon(AnimatedSprite):
         self.num_images = len(self.images)
         self.frame_counter = 0
         self.damage = damage
+
+        self.ammo_usage = ammo_usage
 
         self.showing = True
 
@@ -2693,7 +2726,7 @@ class QuestIcon:
         my_surface = pg.Surface(icon_size)
         pg.draw.rect(my_surface, (255, 255, 255), pg.Rect(3, 3, QUEST_X - 6, QUEST_Y - 6))
 
-        doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 30)
+        doom_font = self.game.display_menu.quest_icon_font
 
         title_txt = doom_font.render(self.title, False, (0, 0, 0))
 
@@ -2727,6 +2760,10 @@ class DisplayMenu:
 
         self.inven_surface = None
 
+        self.doom_font = pg.font.Font(None, 30)
+
+        self.quest_icon_font = self.doom_font
+
     def draw(self):
         if self.showing:
             self.inven_surface = pg.Surface(DISPLAY_RES)
@@ -2754,9 +2791,7 @@ class DisplayMenu:
 
         quest_surface.set_alpha(100)
 
-        doom_font = pg.font.Font('resources/textutil/doomfont.ttf', 60)
-
-        curquests = doom_font.render("Quests", False, (255, 255, 255))
+        curquests = self.doom_font.render("Quests", False, (255, 255, 255))
 
         quest_surface.blit(curquests, (int(QUEST_X * 1.5)//2 - 75, 10))
 
