@@ -72,7 +72,7 @@ FPS = 60
 #player vars
 PLAYER_POS = 1.5, 1.5  # cur_map
 PLAYER_ANGLE = 0
-PLAYER_SPEED = 0.004
+PLAYER_SPEED = 0.0055
 PLAYER_ROT_SPEED = 0.002
 PLAYER_SIZE_SCALE = 60
 PLAYER_MAX_HEALTH = 100
@@ -91,6 +91,8 @@ GAS_DAMAGE = 50
 
 #mouse vars
 MOUSE_SENSITIVITY = 0.0003
+def recalibrate_sensitivity(mouseOn): global MOUSE_SENSITIVITY; MOUSE_SENSITIVITY = 0.0003 if not mouseOn else 0.0002
+
 MOUSE_MAX_REL = 40
 MOUSE_BORDER_LEFT = 100
 MOUSE_BORDER_RIGHT = WIDTH - MOUSE_BORDER_LEFT
@@ -2743,9 +2745,9 @@ class DisplayMenu:
         if event.key == pg.K_TAB and not self.game.text_box.showing:
             self.showing = not self.showing
             if self.showing:
-                pg.mouse.set_visible(True)
+                self.game.setMouseVisibility(True)
             else:
-                pg.mouse.set_visible(False)
+                self.game.setMouseVisibility(False)
 
     def draw_quests(self):
         quest_surface = pg.Surface((int(QUEST_X * 1.5), DISPLAY_Y))
@@ -2884,7 +2886,7 @@ class PawnShopMenu:
 
     def close_shop(self):
         self.set_showing(False)
-        pg.mouse.set_visible(False)
+        self.game.setMouseVisibility(False)
         self.game.object_handler.get_special_passive("pawndonkey").close_pawn_shop()
 
     def redraw_counter(self):
@@ -2947,7 +2949,7 @@ class PawnShopMenu:
 
     def set_showing(self, shw):
         if shw:
-            pg.mouse.set_visible(True)
+            self.game.setMouseVisibility(True)
 
         self.showing = shw
         self.show_images(False, closeX=False)
@@ -3347,10 +3349,12 @@ class StartMenu:
     def mouse_turning(self):
         global MouseRotation_Setting
         MouseRotation_Setting = True
+        recalibrate_sensitivity(True)
 
     def key_turning(self):
         global MouseRotation_Setting
         MouseRotation_Setting = False
+        recalibrate_sensitivity(False)
 
     def click_checks(self):
         for event in pg.event.get():
@@ -3434,8 +3438,9 @@ class Game:
         self.clock = pg.time.Clock()
         self.delta_time = 1
         
+        self.mouseShowing = False
         if MouseRotation_Setting:
-            pg.mouse.set_visible(False)
+            self.setMouseVisibility(False)
 
         #event for animation i think
         self.global_trigger = False
@@ -3462,6 +3467,8 @@ class Game:
             pg.K_LSHIFT: False
         }
         self.new_game()
+
+    def setMouseVisibility(self, bool): self.mouseShowing = bool; pg.mouse.set_visible(bool)
 
     #creates instances of all neccesary classes and starts of the game
     def new_game(self):
