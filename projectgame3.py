@@ -348,6 +348,12 @@ class Player:
             return True
         return False
 
+    def random_check(self):
+        if self.game.map.inBase and distance_formula(Random_Portal_X, Random_Portal_Y, self.x, self.y) < 1.25:
+            self.game.map.entered_random()
+            return True
+        return False
+
     #check if player has ammo (if he does, show weapon)
     def checkWeaponShow(self):
         if self.ammo > 0:
@@ -926,6 +932,8 @@ base_map = [
     [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     #0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16
 ]
+
+Random_Portal_X, Random_Portal_Y = 14, 14
 
 #info abt the bloated goblin that is removed with a stomach medicine
 #btw you need an empty collider in the location of the bloated goblin and the coordaintes of that collider has to be set in the quest so that its correctly removed
@@ -2091,13 +2099,13 @@ class WeaponSystem:
             }
 
         #the weapons you have rn
-        self.my_weapons = [self.weapons[0], self.weapons[1], self.weapons[2], self.weapons[3]]
+        self.my_weapons = [self.weapons[0]]
         #weapon ids you own
-        self.weapon_ids = [0, 1, 2, 3]
+        self.weapon_ids = [0]
 
         self.currentWeapon = 0
 
-        self.change_weapon(2)
+        self.change_weapon(0)
 
     #should not get weapon 2 before weapon 1, only can buy last weapon +1
     def get_weapon(self, indx):
@@ -3334,8 +3342,8 @@ class StartMenu:
         self.buttons.append(MenuButton(self, (1300, 75), 50, 50, "X", self.X_credits_button))
         self.buttons.append(MenuButton(self, (1300, 75), 50, 50, "X", self.X_options_button))
 
-        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 300), 200, 75, "Mouse Turning", self.mouse_turning, tag="options"))
-        self.buttons.append(MenuButton(self, (HALF_WIDTH - 75, 400), 200, 75, "Key Turning", self.key_turning, tag="options"))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 200, 300), 400, 75, "Mouse Turning", self.mouse_turning, tag="options"))
+        self.buttons.append(MenuButton(self, (HALF_WIDTH - 200, 400), 400, 75, "Key Turning", self.key_turning, tag="options"))
 
         self.get_button(self.X_credits_button).changeHidden(True)
         self.get_button(self.X_options_button).changeHidden(True)
