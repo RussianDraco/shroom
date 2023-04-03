@@ -330,6 +330,7 @@ class Player:
         self.inventoryOpen = False
 
         self.onPortal = False
+        self.onRandom = False
 
     def teleport(self, x, y = None):
         if type(x) == type(['a']):
@@ -350,7 +351,7 @@ class Player:
 
     def random_check(self):
         if self.game.map.inBase and distance_formula(Random_Portal_X, Random_Portal_Y, self.x, self.y) < 1.25:
-            self.game.map.entered_random()
+            self.game.map.entered_portal(True)
             return True
         return False
 
@@ -544,6 +545,7 @@ class Player:
     #update function for player class
     def update(self):
         self.onPortal = self.portal_check()
+        self.onRandom = self.random_check()
         self.gasRecharge()
         self.movement()
         self.recover_health()
@@ -1038,19 +1040,29 @@ class Map:
 
         self.generator = MazeGenerator()
 
+        self.inRandom = False
+
         self.get_map()
 
     def EXPIREMENTAL_GENERATION(self):
         synth_map, spwn, portal, spawn_dict = self.generator.generate_maze(30, 30, 7)
+        self.inRandom = True
         self.game.object_handler.clear_entities(); self.game.object_handler.clear_entities()
         self.game.player.teleport(spwn)
         self.load_synthetic_map(synth_map, portal, spawn_dict)
         self.game.pathfinding.reset_pathfinding(self.cur_map)
         self.inBase = False
 
-    def entered_portal(self):
-        if RANDOM_GENERATION:
+    def entered_portal(self, isRandom = False):
+        if self.inBase and isRandom:
             self.EXPIREMENTAL_GENERATION(); return
+        elif (not self.inBase and isRandom) or (not self.inBase and self.inRandom):
+            self.game.player.teleport(BASE_DATA["spawn"])
+            self.load_base()
+            self.game.pathfinding.reset_pathfinding(self.cur_map)
+            self.inBase = True
+            self.inRandom = False
+            return
 
         if self.inBase:
             self.game.player.teleport(LEVEL_DATA[str(self.current_level)]["spawn"])
