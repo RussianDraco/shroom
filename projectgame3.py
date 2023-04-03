@@ -289,6 +289,20 @@ ENEMIES = {
             attack_dmg = 5,
             accuracy = 0.65
         )
+    },
+    "mobboss": {
+        "path": 'resources/sprites/npc/mobboss/0.png',
+        "scale": 2.0,
+        "shift": -0.15,
+        "animation_time": 100,
+        "stats": Stats(
+            attack_dist = 7,
+            speed = 0.01,
+            size = 2.0,
+            health = 5000,
+            attack_dmg = 50,
+            accuracy = 0.4
+        )
     }
 }
 
@@ -914,6 +928,7 @@ class MazeGenerator:
 #false for nothing, numbers for different textures and "p"
 _ = False
 P = "p"
+R = "r"
 base_map = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, _, _, _, _, _, _, _, _, _, 3, 2, 2, 2, _, 1],
@@ -931,7 +946,7 @@ base_map = [
     [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
     [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
     [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
-    [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1, R, 1]
     #0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16
 ]
 
@@ -1035,7 +1050,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 1
+        self.current_level = 12
         self.inBase = True
 
         self.generator = MazeGenerator()
@@ -1117,7 +1132,11 @@ class Map:
     
     def load_level(self, lvl_num):
         lvldata = LEVEL_DATA[str(lvl_num)]
-        lvlmap, lvlspawn, portalLoc = lvldata["map"], lvldata["spawns"], lvldata["portal"]
+        lvlmap, lvlspawn = lvldata["map"], lvldata["spawns"]
+        try:
+            portalLoc = lvldata["portal"]
+        except KeyError:
+            portalLoc = -99, -99
 
         global PORTAL_X, PORTAL_Y
         PORTAL_X, PORTAL_Y = portalLoc[0], portalLoc[1]
@@ -1472,7 +1491,12 @@ class ObjectRenderer:
         #self.gameoverImg = 
         self.portal_frames = [self.get_texture('resources/textures/portal/0.png'), self.get_texture('resources/textures/portal/1.png'), 
                               self.get_texture('resources/textures/portal/2.png'), self.get_texture('resources/textures/portal/3.png')]
+        
+        self.random_frames = [self.get_texture('resources/textures/random/0.png'), self.get_texture('resources/textures/random/1.png'), 
+                              self.get_texture('resources/textures/random/2.png'), self.get_texture('resources/textures/random/3.png')]
+
         self.portal_frame_n = 0
+        self.random_frame_n = 0
 
         self.popup_list = []
 
@@ -1483,6 +1507,7 @@ class ObjectRenderer:
         self.popup_d = {}
 
         self.gameoverImg = pg.transform.scale(pg.image.load("resources/sprites/gameover.png"), (WIDTH, HEIGHT))
+        self.win_screen = pg.transform.scale(pg.image.load("resources/sprites/winscreen.png"), (WIDTH, HEIGHT))
 
         self.npc_talk_dict = {} #array for all passive npcs to specify if they need the talk text to show or not
 
@@ -1527,11 +1552,14 @@ class ObjectRenderer:
         px, py = self.game.player.map_pos
         if distance_formula(PORTAL_X, PORTAL_Y, px, py) < 10:
             self.portal_frame_n += 1; self.portal_frame_n %= 4
+            self.random_frame_n += 1; self.random_frame_n %= 4
             self.wall_textures["p"] = self.portal_frames[self.portal_frame_n]
+            self.wall_textures["r"] = self.random_frames[self.random_frame_n]
 
     #if you lost, show lose screen
-    def game_over(self):
-        self.screen.blit(self.gameoverImg, (0, 0))
+    def game_over(self): self.screen.blit(self.gameoverImg, (0, 0))
+
+    def show_win_screen(self): self.screen.blit(self.win_screen, (0, 0))
 
     #show hurt screen
     def player_damage(self):
@@ -1580,6 +1608,7 @@ class ObjectRenderer:
         #for every item in the textures dir that ends with .png and whos name is numeric, add it to the directory as a value with its number as its key
         out_dict = {int(pth.replace('.png', '')) : self.get_texture(f'resources/textures/' + pth) for pth in os.listdir('resources/textures') if pth.endswith('.png') and pth.replace('.png', '').isnumeric()}
         out_dict["p"] = self.get_texture('resources/textures/portal/0.png')
+        out_dict["r"] = self.get_texture('resources/textures/random/0.png')
         return out_dict
 
         return {
@@ -1588,7 +1617,8 @@ class ObjectRenderer:
             3: self.get_texture('resources/textures/3.png'),
             4: self.get_texture('resources/textures/4.png'),
             5: self.get_texture('resources/textures/5.png'),
-            "p": self.get_texture('resources/textures/portal/0.png')
+            "p": self.get_texture('resources/textures/portal/0.png'),
+            "r": self.get_texture('resources/textures/random/0.png')
         }
 
 
@@ -1951,6 +1981,8 @@ class ObjectHandler:
         #dictionary of basicpassivenpcs' and how centered they are, the more center the more priority for talking to him
         self.passive_centered = {}
 
+        self.boss = None
+
         if not self.game.map.need_to_load == None:
             self.load_level_spawns(self.game.map.need_to_load)
             self.game.map.need_to_load = None    
@@ -1985,6 +2017,8 @@ class ObjectHandler:
         #go through every sprite and if it has the update_sub function, run it (This will be used for subclasses that have extra abilities that will all be run with update_sub)
         [sprite.update_sub() for sprite in self.sprite_list if callable(getattr(sprite, "update_sub", None))]
 
+        
+
     def clear_entities(self):
         arl = len(self.sprite_list)
         for x in range(arl):
@@ -2014,7 +2048,11 @@ class ObjectHandler:
 
                 enemy_data = ENEMIES[npctype]
 
+                
                 self.add_npc(NPC(self.game, enemy_data["path"], npcspawn, enemy_data["scale"], enemy_data["shift"], enemy_data["animation_time"], enemy_data["stats"], none_get(enemy_data, "drops")))
+
+                if npctype == "mobboss":
+                    self.boss = self.npc_list[-1]
 
         if "passive" in spawndict:
             passar = spawndict["passive"]
@@ -2423,6 +2461,10 @@ class NPC(AnimatedSprite):
             if not self.frame_counter < len(self.death_images) - 1:
                 if pg.time.get_ticks() - self.time_died > self.time_before_del:
                     self.game.object_handler.npc_list.remove(self)
+
+                    if self.game.object_handler.boss == self:
+                        self.game.win_game()
+
                     del self
 
     #if npc hurt, play animation
@@ -3524,6 +3566,13 @@ class Game:
         self.new_game()
 
     def setMouseVisibility(self, bool): self.mouseShowing = bool; pg.mouse.set_visible(bool)
+
+    def win_game(self):
+        self.object_handler.show_win_screen()
+        
+        pg.display.flip()
+
+        pg.time.delay(10000)
 
     #creates instances of all neccesary classes and starts of the game
     def new_game(self):
