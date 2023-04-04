@@ -2354,7 +2354,10 @@ class SoundPlayer:
 
     def is_sound_playing(self, sound_name):
         if sound_name in self.sounds:
-            return self.sounds[sound_name].get_num_channels() > 0
+            try:
+                return self.sounds[sound_name].get_num_channels() > 0
+            except pg.error:
+                return False
         return False
 
 
