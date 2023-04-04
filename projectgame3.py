@@ -1049,7 +1049,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 7
+        self.current_level = 1
         self.inBase = True
 
         self.generator = MazeGenerator()
@@ -1153,6 +1153,9 @@ class Map:
         if self.game.object_handler.hut_boss != None:
             self.game.sound_player.stop_sound("theme")
             self.game.sound_player.play_sound("themealt")
+        elif self.game.object_handler.boss != None:
+            self.game.sound_player.stop_sound("theme")
+            self.game.sound_player.play_sound("themeboss")
 
     def load_synthetic_map(self, synthmap, portal, spawndict): #for generated maps
         lvlmap = synthmap
@@ -2312,6 +2315,7 @@ class SoundPlayer:
 
         self.load_sound("theme", 'resources/sound/theme.wav')
         self.load_sound("themealt", 'resources/sound/themealt.wav')
+        self.load_sound("themeboss", 'resources/sound/boss.wav')
         self.load_sound("armor", "resources/sound/armor.wav")
         self.load_sound("heal", "resources/sound/chew.wav")
         self.load_sound("reload", "resources/sound/reload.wav")
