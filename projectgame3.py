@@ -303,6 +303,8 @@ ENEMIES = {
             accuracy = 0.65
         )
     },
+    
+    #the man, the myth, the legend, johny himself
     "mobboss": {
         "path": 'resources/sprites/npc/mobboss/0.png',
         "scale": 2.0,
