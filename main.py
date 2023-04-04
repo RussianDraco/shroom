@@ -1063,7 +1063,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 12
+        self.current_level = 1
         self.inBase = True
 
         self.generator = MazeGenerator()
