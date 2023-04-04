@@ -302,6 +302,20 @@ ENEMIES = {
             attack_dmg = 5,
             accuracy = 0.65
         )
+    },
+    "mobboss": {
+        "path": 'resources/sprites/npc/mobboss/0.png',
+        "scale": 2.0,
+        "shift": -0.15,
+        "animation_time": 100,
+        "stats": Stats(
+            attack_dist = 7,
+            speed = 0.01,
+            size = 2.0,
+            health = 5000,
+            attack_dmg = 50,
+            accuracy = 0.4
+        )
     }
 }
 
@@ -902,7 +916,7 @@ class MazeGenerator:
 
         spawns = {"npc": [], "pickups": []}
 
-        enemy_names = list(ENEMIES.keys())
+        enemy_names = list(ENEMIES.keys()); enemy_names.remove("mobboss"); enemy_names.remove("hut")
         good_items = ['ammo', 'health', 'armor']
         good_item_shifts_scales = {'ammo': [0.5, 0.5], 'health': [1, 0.4], 'armor': [0.8, 0.4]}
         good_item_pth = {'ammo': 'resources/sprites/static/onionbag.png', 'health': 'resources/sprites/static/health.png', 'armor': 'resources/sprites/static/armor.png'}
@@ -926,6 +940,7 @@ class MazeGenerator:
 #false for nothing, numbers for different textures and "p"
 _ = False
 P = "p"
+R = "r"
 base_map = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, _, _, _, _, _, _, _, _, _, 3, 2, 2, 2, _, 1],
@@ -943,7 +958,7 @@ base_map = [
     [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
     [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
     [5, _, _, _, _, _, _, 5, 1, _, _, _, _, _, _, 1],
-    [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    [1, 1, 1, 1, 1, 5, 5, 1, 1, 1, 1, 1, 1, 1, R, 1]
     #0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16
 ]
 
@@ -969,9 +984,7 @@ BASE_DATA = {
     "portal": [14.5, 4.5],
     "spawn": [1.5, 1.5],
     "spawns": {
-        "npc": [
-            #["tridemon", [3.5, 2.5]]
-        ],
+        "npc": [],
         "passive": [
             {
                 "name": "Johny",
@@ -999,7 +1012,8 @@ BASE_DATA = {
             {"name":"Ammo Donkey","path":"resources/sprites/passive/ammodonkey.png","pos":[5.5,10.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"ammodonkey"},
             {"name":"Medic Donkey","path":"resources/sprites/passive/medicdonkey.png","pos":[2.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"medicdonkey"},
             {"name":"Armor Donkey","path":"resources/sprites/passive/armordonkey.png","pos":[5.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"armordonkey"},
-            {"name":"Pawn Donkey","path":"resources/sprites/passive/pawndonkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"pawndonkey"}
+            {"name":"Pawn Donkey","path":"resources/sprites/passive/pawndonkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"pawndonkey"},
+            {"name":"Ghost Pal","path":"resources/sprites/passive/ghost.png","pos":[12.5,12.5],"usetextbox":True,"myline":"Hey, you finnally got that goblin out of the way, now you can access the randomizer portal, this will randomly generate random portals with enemies, a portal and power-up boosts scattered around, the maze will change every time. It's a great way to get some demon tears, good luck!","pitch":"high","scale":0.75,"shift":0,"special_tag":None}
             #{"name":"Donkey","path":"resources/sprites/passive/donkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"I am donkey, we are donkey. You are donkey?","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None}
         ],
         "sprites": [
@@ -1108,6 +1122,10 @@ class Map:
         except AttributeError:
             self.need_to_load = lvlspawn
 
+        if self.game.sound_player.is_sound_playing("themealt"):
+            self.game.sound_player.stop_sound("themealt")
+            self.game.sound_player.play_sound("theme")
+
     def change_map(self, newmap, texture_offset = None, base = False): #should update to new map
         global cur_map
 
@@ -1129,7 +1147,11 @@ class Map:
     
     def load_level(self, lvl_num):
         lvldata = LEVEL_DATA[str(lvl_num)]
-        lvlmap, lvlspawn, portalLoc = lvldata["map"], lvldata["spawns"], lvldata["portal"]
+        lvlmap, lvlspawn = lvldata["map"], lvldata["spawns"]
+        try:
+            portalLoc = lvldata["portal"]
+        except KeyError:
+            portalLoc = -99, -99
 
         global PORTAL_X, PORTAL_Y
         PORTAL_X, PORTAL_Y = portalLoc[0], portalLoc[1]
@@ -1139,6 +1161,13 @@ class Map:
             self.game.object_handler.load_level_spawns(lvlspawn)
         except AttributeError:
             self.need_to_load = lvlspawn
+
+        if self.game.object_handler.hut_boss != None:
+            self.game.sound_player.stop_sound("theme")
+            self.game.sound_player.play_sound("themealt")
+        elif self.game.object_handler.boss != None:
+            self.game.sound_player.stop_sound("theme")
+            self.game.sound_player.play_sound("themeboss")
 
     def load_synthetic_map(self, synthmap, portal, spawndict): #for generated maps
         lvlmap = synthmap
@@ -1484,7 +1513,12 @@ class ObjectRenderer:
         #self.gameoverImg = 
         self.portal_frames = [self.get_texture('resources/textures/portal/0.png'), self.get_texture('resources/textures/portal/1.png'), 
                               self.get_texture('resources/textures/portal/2.png'), self.get_texture('resources/textures/portal/3.png')]
+        
+        self.random_frames = [self.get_texture('resources/textures/random/0.png'), self.get_texture('resources/textures/random/1.png'), 
+                              self.get_texture('resources/textures/random/2.png'), self.get_texture('resources/textures/random/3.png')]
+
         self.portal_frame_n = 0
+        self.random_frame_n = 0
 
         self.popup_list = []
 
@@ -1494,7 +1528,8 @@ class ObjectRenderer:
 
         self.popup_d = {}
 
-        self.gameoverImg = pg.transform.scale(pg.image.load("resources/sprites/gameover.png"), (WIDTH, HEIGHT))
+        self.gameoverImg = pg.transform.scale(pg.image.load("resources/sprites/gameover.png"), (WIDTH, HEIGHT + SHEIGHT))
+        self.win_screen = pg.transform.scale(pg.image.load("resources/sprites/winscreen.png"), (WIDTH, HEIGHT + SHEIGHT))
 
         self.npc_talk_dict = {} #array for all passive npcs to specify if they need the talk text to show or not
 
@@ -1539,11 +1574,14 @@ class ObjectRenderer:
         px, py = self.game.player.map_pos
         if distance_formula(PORTAL_X, PORTAL_Y, px, py) < 10:
             self.portal_frame_n += 1; self.portal_frame_n %= 4
+            self.random_frame_n += 1; self.random_frame_n %= 4
             self.wall_textures["p"] = self.portal_frames[self.portal_frame_n]
+            self.wall_textures["r"] = self.random_frames[self.random_frame_n]
 
     #if you lost, show lose screen
-    def game_over(self):
-        self.screen.blit(self.gameoverImg, (0, 0))
+    def game_over(self): self.screen.blit(self.gameoverImg, (0, 0))
+
+    def show_win_screen(self): self.screen.blit(self.win_screen, (0, 0))
 
     #show hurt screen
     def player_damage(self):
@@ -1592,6 +1630,7 @@ class ObjectRenderer:
         #for every item in the textures dir that ends with .png and whos name is numeric, add it to the directory as a value with its number as its key
         out_dict = {int(pth.replace('.png', '')) : self.get_texture(f'resources/textures/' + pth) for pth in os.listdir('resources/textures') if pth.endswith('.png') and pth.replace('.png', '').isnumeric()}
         out_dict["p"] = self.get_texture('resources/textures/portal/0.png')
+        out_dict["r"] = self.get_texture('resources/textures/random/0.png')
         return out_dict
 
         return {
@@ -1600,7 +1639,8 @@ class ObjectRenderer:
             3: self.get_texture('resources/textures/3.png'),
             4: self.get_texture('resources/textures/4.png'),
             5: self.get_texture('resources/textures/5.png'),
-            "p": self.get_texture('resources/textures/portal/0.png')
+            "p": self.get_texture('resources/textures/portal/0.png'),
+            "r": self.get_texture('resources/textures/random/0.png')
         }
 
 
@@ -1963,6 +2003,9 @@ class ObjectHandler:
         #dictionary of basicpassivenpcs' and how centered they are, the more center the more priority for talking to him
         self.passive_centered = {}
 
+        self.hut_boss = None
+        self.boss = None
+
         if not self.game.map.need_to_load == None:
             self.load_level_spawns(self.game.map.need_to_load)
             self.game.map.need_to_load = None    
@@ -1997,6 +2040,8 @@ class ObjectHandler:
         #go through every sprite and if it has the update_sub function, run it (This will be used for subclasses that have extra abilities that will all be run with update_sub)
         [sprite.update_sub() for sprite in self.sprite_list if callable(getattr(sprite, "update_sub", None))]
 
+        
+
     def clear_entities(self):
         arl = len(self.sprite_list)
         for x in range(arl):
@@ -2026,7 +2071,13 @@ class ObjectHandler:
 
                 enemy_data = ENEMIES[npctype]
 
+                
                 self.add_npc(NPC(self.game, enemy_data["path"], npcspawn, enemy_data["scale"], enemy_data["shift"], enemy_data["animation_time"], enemy_data["stats"], none_get(enemy_data, "drops")))
+
+                if npctype == "mobboss":
+                    self.boss = self.npc_list[-1]
+                elif npctype == "hut":
+                    self.hut_boss = self.npc_list[-1]
 
         if "passive" in spawndict:
             passar = spawndict["passive"]
@@ -2275,6 +2326,8 @@ class SoundPlayer:
         self.sounds = {}
 
         self.load_sound("theme", 'resources/sound/theme.wav')
+        self.load_sound("themealt", 'resources/sound/themealt.wav')
+        self.load_sound("themeboss", 'resources/sound/boss.wav')
         self.load_sound("armor", "resources/sound/armor.wav")
         self.load_sound("heal", "resources/sound/chew.wav")
         self.load_sound("reload", "resources/sound/reload.wav")
@@ -2435,6 +2488,14 @@ class NPC(AnimatedSprite):
             if not self.frame_counter < len(self.death_images) - 1:
                 if pg.time.get_ticks() - self.time_died > self.time_before_del:
                     self.game.object_handler.npc_list.remove(self)
+                    del self
+
+                elif "mobboss" in self.path:
+                    self.game.object_handler.npc_list.remove(self)
+
+                    if self.game.object_handler.boss == self:
+                        self.game.win_game()
+
                     del self
 
     #if npc hurt, play animation
@@ -3536,6 +3597,20 @@ class Game:
         self.new_game()
 
     def setMouseVisibility(self, bool): self.mouseShowing = bool; pg.mouse.set_visible(bool)
+
+    def win_game(self):
+        self.object_renderer.show_win_screen()
+
+        self.sound_player.stop_sound("theme"); self.sound_player.load_sound("winning", 'resources/sound/win.wav'); self.sound_player.play_sound("winning", volume=0.4, loop=False)
+        
+        pg.transform.scale(self.screen, ACTUALRES, self.mainscreen)
+
+        pg.display.flip()
+
+        pg.time.wait(7500)
+
+        pg.quit()
+        sys.exit()
 
     #creates instances of all neccesary classes and starts of the game
     def new_game(self):
