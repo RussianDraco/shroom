@@ -3298,44 +3298,80 @@ class StatBar:
 
 #######################################LORE#####################################
 
-class Lore:
-    def __init__(self, menu):
-        self.menu = menu
-        self.screen = menu.screen
+class lore:
+    def __init__(self):
+        self.mainscreen = pg.display.set_mode(ACTUALRES, pg.FULLSCREEN)
+        self.screen = pg.Surface((WIDTH, HEIGHT + SHEIGHT)) # not a swear word, stands for s height
+        self.folder_path = "resources/lore"
+        self.duration = 2
+        self.fade_in_time = 1
+        self.fade_out_time = 1
+        self.images = []
+        self.current_image = None
+        self.image_alpha = 0
+        self.fade_in_timer = 0
+        self.fade_out_timer = 0
         self.clock = pg.time.Clock()
-        self.img_dict = self.make_dict()
-        self.actually_run()
-    
-    @staticmethod
-    def get_texture(path):
-        image = pg.image.load(path).convert_alpha()
-        width, height = image.get_width(), image.get_height()
-        if width >= height:
-            wh_ratio = width/height
+        self.lore = True
+        
+        #load images from folder
+        for file in os.listdir(self.folder_path):
+            if file.endswith(".png") or file.endswith(".jpg") or file.endswith(".jpeg"):
+                image_path = os.path.join(self.folder_path, file)
+                image = pg.image.load(image_path).convert_alpha()
+                self.images.append(image)
+                
+    def update_time(self):
+        self.delta_time = self.clock.tick(60) / 1000.0
+        return self.delta_time
 
-            width = WIDTH; height = HEIGHT / wh_ratio
+    def update(self, dt): #dt is the time since the last update
+        if self.current_image is None: #sets first image and image and starts the magic
+            self.screen.fill("black")
+            self.current_image = self.images[0]
+            self.fade_in_timer = self.fade_in_time
         else:
-            wh_ratio = height/width
-
-            height = HEIGHT; width = WIDTH / wh_ratio
-
-        print("returned")
-        return pg.transform.scale(image, (width, height))
-    
-    def make_dict(self):
-        out_ar = [self.get_texture('resources/lore/' + pth) for pth in os.listdir('resources/lore/')]
-        print("made_dirs")
-        return out_ar
-
-    def actually_run(self):
-        for obj in self.img_dict:
+            if self.fade_in_timer > 0: # fade in image
+                self.fade_in_timer -= dt
+                self.image_alpha = int(255 - (self.fade_in_timer / self.fade_in_time) * 255)
+                
+            elif self.duration > 0: #displays image for wanted time
+                self.duration -= dt
+                
+            elif self.fade_out_timer < self.fade_out_time: # fade out the image
+                self.fade_out_timer += dt
+                self.image_alpha = int((self.fade_out_timer / self.fade_out_time) * 255)
+                
+            else: #next image is set to the now image
+                current_index = self.images.index(self.current_image)
+                
+                if current_index == len(self.images) - 1: # if no more images lest then stop
+                    self.lore = False
             
-            print("ran")
-            self.screen.fill('black')
-            self.screen.blit(obj, (0, 0))
-            pg.display.flip()
-            pg.time.delay(1000)
+                else:
+                    next_index = (current_index + 1) % len(self.images)
+                    self.current_image = self.images[next_index]
+                    self.duration = self.duration
+                    self.fade_in_timer = self.fade_in_time
+                    self.fade_out_timer = 0
+                    self.image_alpha = 0
 
+    def draw(self):
+        if self.current_image is not None:
+            scaled_image = pg.transform.scale(self.current_image, self.screen.get_size())
+            scaled_image.set_alpha(self.image_alpha)
+            self.screen.blit(scaled_image, (0, 0))
+        
+    def run(self):
+        while self.lore:
+            transcreen = pg.transform.scale(self.screen, ACTUALRES)
+            self.mainscreen.blit(transcreen, (0, 0))
+
+            pg.display.flip()
+            
+            self.dt = self.update_time()
+            self.update(self.dt)
+            self.draw()
 
 ###############################START MENU#################################
 
@@ -3489,21 +3525,23 @@ class StartMenu:
         global MouseRotation_Setting
         MouseRotation_Setting = False
         recalibrate_sensitivity(False)
-
+  
     def click_checks(self):
         for event in pg.event.get():
             if event.type == pg.MOUSEBUTTONDOWN:
                 [but.mouseClick() for but in self.buttons]
 
     def play_lore(self):
-        self.lore = Lore(self)
+        self.truelore = lore()
+        self.truelore.run()
+        
 
     def exit_button(self):
         pg.quit()
         sys.exit()
 
     def play_button(self):
-        self.in_menu = False
+        self.in_menu = True
         
     def options_button(self):
         self.screen.fill('black')
