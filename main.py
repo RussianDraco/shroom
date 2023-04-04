@@ -440,7 +440,7 @@ class Player:
 
         self.game.object_renderer.player_damage()
         self.game.sound_player.play_sound("playerpain", loop=False)
-        #self.check_game_over()
+        self.check_game_over()
 
     #function to check if shot weapon
     def single_fire_event(self, event):
@@ -1169,6 +1169,7 @@ class Map:
             self.game.sound_player.play_sound("themealt")
         elif self.game.object_handler.boss != None:
             self.game.sound_player.stop_sound("theme")
+            self.game.sound_player.stop_sound("themealt")
             self.game.sound_player.play_sound("themeboss")
 
     def load_synthetic_map(self, synthmap, portal, spawndict): #for generated maps
@@ -1967,14 +1968,14 @@ class AnimatedSprite(SpriteObject):
     def get_images(self, path):
         #func to sort an array of image paths(i.e. 0.png, 1.png, etc) by their first number to prevent os from ordering them wrong
         def spec_sort(ar):
-            return [x for _, x in sorted(zip([int(val.replace('.png', '')) for val in ar], ar))]
+            try:
+                return [x for _, x in sorted(zip([int(val.replace('.png', '')) for val in ar], ar))]
+            except ValueError:
+                return ar
 
         images = deque()
 
-        if len(os.listdir(path)) > 10:
-            searchpath = spec_sort(os.listdir(path))
-        else:
-            searchpath = os.listdir(path)
+        searchpath = spec_sort(os.listdir(path))
 
         for file_name in searchpath:
             if os.path.isfile(os.path.join(path, file_name)):
