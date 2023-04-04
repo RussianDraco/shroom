@@ -3,6 +3,8 @@
 
 #textures: https://www.doomworld.com/afterglow/textures/
 
+#
+
 """
 To make it easier to navigate, the code is separated into sections with triple hashtag comments
 Classes are more widely used to create simplicity
@@ -57,7 +59,7 @@ RANDOM_GENERATION = False #if true, portals will generate random mazes, else, pl
 RES = WIDTH, HEIGHT = 1600, 700 #1600, 700 is default, i might change it for simplicity sake
 ACTUALRES = RWIDTH, RHEIGHT = pyautosize()
 
-# screen ratios
+# screen ratios between actual and player screen
 RatioWidth = WIDTH/RWIDTH
 RatioHeight = HEIGHT/RHEIGHT
 
@@ -65,6 +67,8 @@ RatioHeight = HEIGHT/RHEIGHT
 STATBARRES = SWIDTH, SHEIGHT = WIDTH, 150 #WIDTH, 150 is default
 
 # RES = WIDTH, HEIGHT = 1920, 1080
+
+#some other variables
 HALF_WIDTH = WIDTH // 2
 HALF_HEIGHT = HEIGHT // 2
 FPS = 60
@@ -79,7 +83,7 @@ PLAYER_MAX_HEALTH = 100
 PLAYER_MAX_ARMOR = 100
 RECOVERY_DELAY = 9999
 
-QUEST_LIMIT = 3
+QUEST_LIMIT = 3 #we made quests, but didn't actually get to implement them into the game
 
 #inventory
 INVENTORY_SIZE = 9
@@ -123,6 +127,7 @@ ICON_WIDTH, ICON_HEIGHT = 80, 80
 MouseRotation_Setting = False
 
 #stats class for enemy npcs
+
 class Stats: #just a class to store npc stats
     def __init__(self, attack_dist, speed, size, health, attack_dmg, accuracy):
         self.attack_dist = attack_dist
@@ -162,6 +167,7 @@ ITEM_DICT = {
 
 #dict describing all the enemies
 ENEMIES = {
+    #guy who opens his mouth
     "basic": {
         "path" : 'resources/sprites/npc/basic/0.png',
         "scale": 0.6,
@@ -176,6 +182,7 @@ ENEMIES = {
             accuracy = 0.6
         )
     },
+    #tax accountant zombie
     "zombie": {
         "path" : 'resources/sprites/npc/zombie/0.png',
         "scale": 1.75,
@@ -193,6 +200,7 @@ ENEMIES = {
             [3, 40, 1]
         ]
     },
+    #the flying egg thing
     "gemdemon": {
         "path" : 'resources/sprites/npc/gemdemon/0.png',
         "scale": 1,
@@ -210,6 +218,7 @@ ENEMIES = {
             [5, 33, 1]
         ]
     },
+    #the demon with a trident
     "tridemon": {
         "path": 'resources/sprites/npc/tridemon/0.png',
         "scale": 2,
@@ -227,6 +236,7 @@ ENEMIES = {
             [2, 50, [1, 3]]
         ]
     },
+    #book
     "satansnovel": {
         "path": 'resources/sprites/npc/satansnovel/0.png',
         "scale": 1,
@@ -244,6 +254,7 @@ ENEMIES = {
             [6, 20, [1, 2]]
         ]
     },
+    #the shadowy person who is at the podium 
     "shadowslinger": {
         "path": 'resources/sprites/npc/shadowslinger/0.png',
         "scale": 1,
@@ -262,6 +273,7 @@ ENEMIES = {
             [4, 50, [1, 2]]
         ]
     },
+    #coolest enemy, spawns buckets and is a huge house
     "hut": {
         "path": 'resources/sprites/npc/hut/0.png',
         "scale": 2.5,
@@ -276,6 +288,7 @@ ENEMIES = {
             accuracy = 0.75
         )
     },
+    #little enemies that are spawned by hut
     "bucket": {
         "path": 'resources/sprites/npc/bucket/0.png',
         "scale": 0.75,
@@ -301,7 +314,6 @@ PAWN_PRICES = {
 }
 
 ###PLAYER###
-
 
 #player class
 class Player:
