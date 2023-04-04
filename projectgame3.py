@@ -904,7 +904,7 @@ class MazeGenerator:
 
         spawns = {"npc": [], "pickups": []}
 
-        enemy_names = list(ENEMIES.keys())
+        enemy_names = list(ENEMIES.keys()); enemy_names.remove("mobboss"); enemy_names.remove("hut")
         good_items = ['ammo', 'health', 'armor']
         good_item_shifts_scales = {'ammo': [0.5, 0.5], 'health': [1, 0.4], 'armor': [0.8, 0.4]}
         good_item_pth = {'ammo': 'resources/sprites/static/onionbag.png', 'health': 'resources/sprites/static/health.png', 'armor': 'resources/sprites/static/armor.png'}
@@ -972,9 +972,7 @@ BASE_DATA = {
     "portal": [14.5, 4.5],
     "spawn": [1.5, 1.5],
     "spawns": {
-        "npc": [
-            #["tridemon", [3.5, 2.5]]
-        ],
+        "npc": [],
         "passive": [
             {
                 "name": "Johny",
@@ -1002,7 +1000,8 @@ BASE_DATA = {
             {"name":"Ammo Donkey","path":"resources/sprites/passive/ammodonkey.png","pos":[5.5,10.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"ammodonkey"},
             {"name":"Medic Donkey","path":"resources/sprites/passive/medicdonkey.png","pos":[2.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"medicdonkey"},
             {"name":"Armor Donkey","path":"resources/sprites/passive/armordonkey.png","pos":[5.5,14.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"armordonkey"},
-            {"name":"Pawn Donkey","path":"resources/sprites/passive/pawndonkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"pawndonkey"}
+            {"name":"Pawn Donkey","path":"resources/sprites/passive/pawndonkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"ERROR","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":"pawndonkey"},
+            {"name":"Ghost Pal","path":"resources/sprites/passive/ghost.png","pos":[12.5,12.5],"usetextbox":True,"myline":"Hey, you finnally got that goblin out of the way, now you can access the randomizer portal, this will randomly generate random portals with enemies, a portal and power-up boosts scattered around, the maze will change every time. It's a great way to get some demon tears, good luck!","pitch":"high","scale":0.75,"shift":0,"special_tag":None}
             #{"name":"Donkey","path":"resources/sprites/passive/donkey.png","pos":[3.5,12.5],"usetextbox":True,"myline":"I am donkey, we are donkey. You are donkey?","pitch":"mid","scale":0.8,"shift":0.2,"special_tag":None}
         ],
         "sprites": [
@@ -1050,7 +1049,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 12
+        self.current_level = 7
         self.inBase = True
 
         self.generator = MazeGenerator()
@@ -1111,6 +1110,10 @@ class Map:
         except AttributeError:
             self.need_to_load = lvlspawn
 
+        if self.game.sound_player.is_sound_playing("themealt"):
+            self.game.sound_player.stop_sound("themealt")
+            self.game.sound_player.play_sound("theme")
+
     def change_map(self, newmap, texture_offset = None, base = False): #should update to new map
         global cur_map
 
@@ -1146,6 +1149,10 @@ class Map:
             self.game.object_handler.load_level_spawns(lvlspawn)
         except AttributeError:
             self.need_to_load = lvlspawn
+
+        if self.game.object_handler.hut_boss != None:
+            self.game.sound_player.stop_sound("theme")
+            self.game.sound_player.play_sound("themealt")
 
     def load_synthetic_map(self, synthmap, portal, spawndict): #for generated maps
         lvlmap = synthmap
@@ -1506,8 +1513,8 @@ class ObjectRenderer:
 
         self.popup_d = {}
 
-        self.gameoverImg = pg.transform.scale(pg.image.load("resources/sprites/gameover.png"), (WIDTH, HEIGHT))
-        self.win_screen = pg.transform.scale(pg.image.load("resources/sprites/winscreen.png"), (WIDTH, HEIGHT))
+        self.gameoverImg = pg.transform.scale(pg.image.load("resources/sprites/gameover.png"), (WIDTH, HEIGHT + SHEIGHT))
+        self.win_screen = pg.transform.scale(pg.image.load("resources/sprites/winscreen.png"), (WIDTH, HEIGHT + SHEIGHT))
 
         self.npc_talk_dict = {} #array for all passive npcs to specify if they need the talk text to show or not
 
@@ -1981,6 +1988,7 @@ class ObjectHandler:
         #dictionary of basicpassivenpcs' and how centered they are, the more center the more priority for talking to him
         self.passive_centered = {}
 
+        self.hut_boss = None
         self.boss = None
 
         if not self.game.map.need_to_load == None:
@@ -2053,6 +2061,8 @@ class ObjectHandler:
 
                 if npctype == "mobboss":
                     self.boss = self.npc_list[-1]
+                elif npctype == "hut":
+                    self.hut_boss = self.npc_list[-1]
 
         if "passive" in spawndict:
             passar = spawndict["passive"]
@@ -2301,6 +2311,7 @@ class SoundPlayer:
         self.sounds = {}
 
         self.load_sound("theme", 'resources/sound/theme.wav')
+        self.load_sound("themealt", 'resources/sound/themealt.wav')
         self.load_sound("armor", "resources/sound/armor.wav")
         self.load_sound("heal", "resources/sound/chew.wav")
         self.load_sound("reload", "resources/sound/reload.wav")
@@ -2460,6 +2471,10 @@ class NPC(AnimatedSprite):
                     self.time_died = pg.time.get_ticks()
             if not self.frame_counter < len(self.death_images) - 1:
                 if pg.time.get_ticks() - self.time_died > self.time_before_del:
+                    self.game.object_handler.npc_list.remove(self)
+                    del self
+
+                elif "mobboss" in self.path:
                     self.game.object_handler.npc_list.remove(self)
 
                     if self.game.object_handler.boss == self:
@@ -3568,11 +3583,18 @@ class Game:
     def setMouseVisibility(self, bool): self.mouseShowing = bool; pg.mouse.set_visible(bool)
 
     def win_game(self):
-        self.object_handler.show_win_screen()
+        self.object_renderer.show_win_screen()
+
+        self.sound_player.stop_sound("theme"); self.sound_player.load_sound("winning", 'resources/sound/win.wav'); self.sound_player.play_sound("winning", volume=0.4, loop=False)
         
+        pg.transform.scale(self.screen, ACTUALRES, self.mainscreen)
+
         pg.display.flip()
 
-        pg.time.delay(10000)
+        pg.time.wait(7500)
+
+        pg.quit()
+        sys.exit()
 
     #creates instances of all neccesary classes and starts of the game
     def new_game(self):
