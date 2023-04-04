@@ -1063,7 +1063,7 @@ class Map:
         self.world_map = {}
         self.rows = len(self.cur_map)
         self.cols = len(self.cur_map[0])
-        self.current_level = 1
+        self.current_level = 12
         self.inBase = True
 
         self.generator = MazeGenerator()
@@ -3292,7 +3292,7 @@ class StatBar:
 
         self.drawGasIcon()
 
-###LORE###
+#######################################LORE#####################################
 
 class Lore:
     def __init__(self, menu):
@@ -3333,7 +3333,7 @@ class Lore:
             pg.time.delay(1000)
 
 
-###START MENU###
+###############################START MENU#################################
 
 
 class MenuButton:
@@ -3493,7 +3493,6 @@ class StartMenu:
 
     def play_lore(self):
         self.lore = Lore(self)
-        self.lore.actually_run()
 
     def exit_button(self):
         pg.quit()
