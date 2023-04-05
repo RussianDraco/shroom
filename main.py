@@ -3347,7 +3347,7 @@ class lore:
                 
                 if current_index == len(self.images) - 1: # if no more images lest then stop
                     self.lore = False
-            
+                    
                 else:
                     next_index = (current_index + 1) % len(self.images)
                     self.current_image = self.images[next_index]
