@@ -1,7 +1,7 @@
 import json
 import pygame
 import sys
-from projectgame3 import MazeGenerator
+from main import MazeGenerator
 
 WIDTH, HEIGHT = 1600, 900
 

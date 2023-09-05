@@ -2177,9 +2177,9 @@ class WeaponSystem:
             }
 
         #the weapons you have rn
-        self.my_weapons = [self.weapons[0]]
+        self.my_weapons = [self.weapons[0], self.weapons[1], self.weapons[2]]
         #weapon ids you own
-        self.weapon_ids = [0]
+        self.weapon_ids = [0, 1, 2]
 
         self.currentWeapon = 0
 
@@ -3541,7 +3541,7 @@ class StartMenu:
         sys.exit()
 
     def play_button(self):
-        self.in_menu = True
+        self. in_menu = False
         
     def options_button(self):
         self.screen.fill('black')
