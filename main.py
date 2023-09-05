@@ -18,6 +18,7 @@ import os
 from collections import deque
 from random import randint, random, choice, uniform
 import json
+import time
 from pyautogui import size as pyautosize
 #import numpy as np
 
@@ -424,10 +425,13 @@ class Player:
     def check_game_over(self):
         if self.health < 1:
             self.game.object_renderer.game_over()
+            self.game.object_renderer.game_over()
 
-            pg.quit()
+            time.sleep(5)
 
-            #self.game.new_game()
+            #pg.quit()
+
+            self.game.new_game()
 
     #function to lower health, show hurt screen, play hurt sound and check if health too low
     def get_damage(self, dmg):
