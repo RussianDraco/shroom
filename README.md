@@ -7,3 +7,6 @@ Shroom is an arcade style adventure action shooter starring a green ogre fightin
 <img width="500" alt="Shroom Banner" src="https://raw.githubusercontent.com/RussianDraco/shroom/main/resources/sprites/shroom.png">
 </a>
 </p>
+
+# Trailer
+https://youtu.be/I3F-N9qjjUg
